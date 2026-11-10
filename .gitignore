@@ -1,0 +1,9 @@
+# WorkBuddy project data and Wrangler local state are machine-local
+.workbuddy-ai/
+.wrangler/
+
+# generated / temporary verification files
+_chk*.js
+_noassets.html
+_verify*.js
+*.tmp
