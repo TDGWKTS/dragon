@@ -1388,6 +1388,24 @@ pressTrack.armed = true;
 //   hello {code} · start {seed} · input {rec} · hash {tick, h} ·
 //   reject {} · bye {}
 var PEER_PREFIX = "dragon-alley-matt-";
+// ICE servers: PeerJS's own defaults (Google STUN + its free TURN) PLUS
+// the OpenRelay public TURN, which also listens on port 443 over TCP/TLS.
+// Plain TURN is UDP-only; on networks that block UDP (office firewalls,
+// some carriers) the direct connection can never form — that was Matt's
+// 2026-11-10 stage-② hang. A TURN path on 443 looks like ordinary HTTPS
+// traffic and gets through far more often. Passing a config REPLACES
+// PeerJS's default, so the defaults are repeated here on purpose.
+var ICE_CONFIG = { iceServers: [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun.cloudflare.com:3478" },
+  { urls: "turn:eu-0.turn.peerjs.com:3478", username: "peerjs", credential: "peerjsp" },
+  { urls: "turn:us-0.turn.peerjs.com:3478", username: "peerjs", credential: "peerjsp" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turns:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+] };
 var CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 var LOBBY = { state: "menu", idx: 0, typed: "", code: "", status: "" };
 var LOBBY_ROWS_Y = [108, 140, 172];
@@ -1573,7 +1591,7 @@ function netPeerHostOpen(sess){
   netClearTimers(sess);
   if (sess.peer){ try { sess.peer.destroy(); } catch(e){} sess.peer = null; }
   var peer;
-  try { peer = new window.Peer(PEER_PREFIX + sess.code); } catch(e){
+  try { peer = new window.Peer(PEER_PREFIX + sess.code, { config: ICE_CONFIG }); } catch(e){
     LOBBY.state = "menu"; LOBBY.status = "開房失敗，再試下"; netCloseTransport(); NET = null; return;
   }
   sess.peer = peer;
@@ -1637,7 +1655,7 @@ function netGuestJoin(){
     return;
   }
   var peer;
-  try { peer = new window.Peer(); } catch(e){
+  try { peer = new window.Peer({ config: ICE_CONFIG }); } catch(e){
     LOBBY.state = "menu"; LOBBY.status = "連接失敗，再試下"; NET = null; return;
   }
   sess.peer = peer;
