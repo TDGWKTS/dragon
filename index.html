@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>雙龍巷戰 Dragon Alley</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin:0; padding:0; background:#0b0b14; height:100%; overflow:hidden;
+    -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif; }
+  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#05050a; }
+  html, body, #wrap { touch-action:none; overscroll-behavior:none; }
+  canvas { image-rendering:pixelated; image-rendering:crisp-edges; background:#000; touch-action:none; }
+  #hint { position:fixed; left:0; right:0; bottom:2px; text-align:center; color:#556; font-size:11px; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="cv" width="480" height="270"></canvas></div>
+<div id="hint">鍵盤：方向鍵/WASD 移動 · J 拳/執武器 · K 腳 · L/空白 跳 · P 暫停 · 2P：TFGH 行 / R 拳 / Y 腳 / U 跳</div>
+<script data-lib="peerjs-1.5.5">
+(()=>{function e(e,t,n,r){Object.defineProperty(e,t,{get:n,set:r,enumerable:!0,configurable:!0})}function t(e){return e&&e.__esModule?e.default:e}class n{constructor(){this.chunkedMTU=16300,this._dataCount=1,this.chunk=e=>{let t=[],n=e.byteLength,r=Math.ceil(n/this.chunkedMTU),i=0,s=0;for(;s<n;){let o=Math.min(n,s+this.chunkedMTU),a=e.slice(s,o),c={__peerData:this._dataCount,n:i,data:a,total:r};t.push(c),s=o,i++}return this._dataCount++,t}}}class r{append_buffer(e){this.flush(),this._parts.push(e)}append(e){this._pieces.push(e)}flush(){if(this._pieces.length>0){let e=new Uint8Array(this._pieces);this._parts.push(e),this._pieces=[]}}toArrayBuffer(){let e=[];for(let t of this._parts)e.push(t);return function(e){let t=0;for(let n of e)t+=n.byteLength;let n=new Uint8Array(t),r=0;for(let t of e){let e=new Uint8Array(t.buffer,t.byteOffset,t.byteLength);n.set(e,r),r+=t.byteLength}return n}(e).buffer}constructor(){this.encoder=new TextEncoder,this._pieces=[],this._parts=[]}}function i(e){return new o(e).unpack()}function s(e){let t=new a,n=t.pack(e);return n instanceof Promise?n.then(()=>t.getBuffer()):t.getBuffer()}class o{unpack(){let e,t=this.unpack_uint8();if(t<128)return t;if((224^t)<32)return(224^t)-32;if((e=160^t)<=15)return this.unpack_raw(e);if((e=176^t)<=15)return this.unpack_string(e);if((e=144^t)<=15)return this.unpack_array(e);if((e=128^t)<=15)return this.unpack_map(e);switch(t){case 192:return null;case 193:case 212:case 213:case 214:case 215:return;case 194:return!1;case 195:return!0;case 202:return this.unpack_float();case 203:return this.unpack_double();case 204:return this.unpack_uint8();case 205:return this.unpack_uint16();case 206:return this.unpack_uint32();case 207:return this.unpack_uint64();case 208:return this.unpack_int8();case 209:return this.unpack_int16();case 210:return this.unpack_int32();case 211:return this.unpack_int64();case 216:return e=this.unpack_uint16(),this.unpack_string(e);case 217:return e=this.unpack_uint32(),this.unpack_string(e);case 218:return e=this.unpack_uint16(),this.unpack_raw(e);case 219:return e=this.unpack_uint32(),this.unpack_raw(e);case 220:return e=this.unpack_uint16(),this.unpack_array(e);case 221:return e=this.unpack_uint32(),this.unpack_array(e);case 222:return e=this.unpack_uint16(),this.unpack_map(e);case 223:return e=this.unpack_uint32(),this.unpack_map(e)}}unpack_uint8(){let e=255&this.dataView[this.index];return this.index++,e}unpack_uint16(){let e=this.read(2),t=(255&e[0])*256+(255&e[1]);return this.index+=2,t}unpack_uint32(){let e=this.read(4),t=((256*e[0]+e[1])*256+e[2])*256+e[3];return this.index+=4,t}unpack_uint64(){let e=this.read(8),t=((((((256*e[0]+e[1])*256+e[2])*256+e[3])*256+e[4])*256+e[5])*256+e[6])*256+e[7];return this.index+=8,t}unpack_int8(){let e=this.unpack_uint8();return e<128?e:e-256}unpack_int16(){let e=this.unpack_uint16();return e<32768?e:e-65536}unpack_int32(){let e=this.unpack_uint32();return e<0x80000000?e:e-0x100000000}unpack_int64(){let e=this.unpack_uint64();return e<0x8000000000000000?e:e-0xffffffffffffffff}unpack_raw(e){if(this.length<this.index+e)throw Error(`BinaryPackFailure: index is out of range ${this.index} ${e} ${this.length}`);let t=this.dataBuffer.slice(this.index,this.index+e);return this.index+=e,t}unpack_string(e){let t,n,r=this.read(e),i=0,s="";for(;i<e;)(t=r[i])<160?(n=t,i++):(192^t)<32?(n=(31&t)<<6|63&r[i+1],i+=2):(224^t)<16?(n=(15&t)<<12|(63&r[i+1])<<6|63&r[i+2],i+=3):(n=(7&t)<<18|(63&r[i+1])<<12|(63&r[i+2])<<6|63&r[i+3],i+=4),s+=String.fromCodePoint(n);return this.index+=e,s}unpack_array(e){let t=Array(e);for(let n=0;n<e;n++)t[n]=this.unpack();return t}unpack_map(e){let t={};for(let n=0;n<e;n++)t[this.unpack()]=this.unpack();return t}unpack_float(){let e=this.unpack_uint32();return(0==e>>31?1:-1)*(8388607&e|8388608)*2**((e>>23&255)-127-23)}unpack_double(){let e=this.unpack_uint32(),t=this.unpack_uint32(),n=(e>>20&2047)-1023;return(0==e>>31?1:-1)*((1048575&e|1048576)*2**(n-20)+t*2**(n-52))}read(e){let t=this.index;if(t+e<=this.length)return this.dataView.subarray(t,t+e);throw Error("BinaryPackFailure: read index out of range")}constructor(e){this.index=0,this.dataBuffer=e,this.dataView=new Uint8Array(this.dataBuffer),this.length=this.dataBuffer.byteLength}}class a{getBuffer(){return this._bufferBuilder.toArrayBuffer()}pack(e){if("string"==typeof e)this.pack_string(e);else if("number"==typeof e)Math.floor(e)===e?this.pack_integer(e):this.pack_double(e);else if("boolean"==typeof e)!0===e?this._bufferBuilder.append(195):!1===e&&this._bufferBuilder.append(194);else if(void 0===e)this._bufferBuilder.append(192);else if("object"==typeof e)if(null===e)this._bufferBuilder.append(192);else{let t=e.constructor;if(e instanceof Array){let t=this.pack_array(e);if(t instanceof Promise)return t.then(()=>this._bufferBuilder.flush())}else if(e instanceof ArrayBuffer)this.pack_bin(new Uint8Array(e));else if("BYTES_PER_ELEMENT"in e)this.pack_bin(new Uint8Array(e.buffer,e.byteOffset,e.byteLength));else if(e instanceof Date)this.pack_string(e.toString());else if(e instanceof Blob)return e.arrayBuffer().then(e=>{this.pack_bin(new Uint8Array(e)),this._bufferBuilder.flush()});else if(t==Object||t.toString().startsWith("class")){let t=this.pack_object(e);if(t instanceof Promise)return t.then(()=>this._bufferBuilder.flush())}else throw Error(`Type "${t.toString()}" not yet supported`)}else throw Error(`Type "${typeof e}" not yet supported`);this._bufferBuilder.flush()}pack_bin(e){let t=e.length;if(t<=15)this.pack_uint8(160+t);else if(t<=65535)this._bufferBuilder.append(218),this.pack_uint16(t);else if(t<=0xffffffff)this._bufferBuilder.append(219),this.pack_uint32(t);else throw Error("Invalid length");this._bufferBuilder.append_buffer(e)}pack_string(e){let t=this._textEncoder.encode(e),n=t.length;if(n<=15)this.pack_uint8(176+n);else if(n<=65535)this._bufferBuilder.append(216),this.pack_uint16(n);else if(n<=0xffffffff)this._bufferBuilder.append(217),this.pack_uint32(n);else throw Error("Invalid length");this._bufferBuilder.append_buffer(t)}pack_array(e){let t=e.length;if(t<=15)this.pack_uint8(144+t);else if(t<=65535)this._bufferBuilder.append(220),this.pack_uint16(t);else if(t<=0xffffffff)this._bufferBuilder.append(221),this.pack_uint32(t);else throw Error("Invalid length");let n=r=>{if(r<t){let t=this.pack(e[r]);return t instanceof Promise?t.then(()=>n(r+1)):n(r+1)}};return n(0)}pack_integer(e){if(e>=-32&&e<=127)this._bufferBuilder.append(255&e);else if(e>=0&&e<=255)this._bufferBuilder.append(204),this.pack_uint8(e);else if(e>=-128&&e<=127)this._bufferBuilder.append(208),this.pack_int8(e);else if(e>=0&&e<=65535)this._bufferBuilder.append(205),this.pack_uint16(e);else if(e>=-32768&&e<=32767)this._bufferBuilder.append(209),this.pack_int16(e);else if(e>=0&&e<=0xffffffff)this._bufferBuilder.append(206),this.pack_uint32(e);else if(e>=-0x80000000&&e<=0x7fffffff)this._bufferBuilder.append(210),this.pack_int32(e);else if(e>=-0x8000000000000000&&e<=0x8000000000000000)this._bufferBuilder.append(211),this.pack_int64(e);else if(e>=0&&e<=0xffffffffffffffff)this._bufferBuilder.append(207),this.pack_uint64(e);else throw Error("Invalid integer")}pack_double(e){let t=0;e<0&&(t=1,e=-e);let n=Math.floor(Math.log(e)/Math.LN2),r=Math.floor((e/2**n-1)*0x10000000000000),i=t<<31|n+1023<<20|r/0x100000000&1048575;this._bufferBuilder.append(203),this.pack_int32(i),this.pack_int32(r%0x100000000)}pack_object(e){let t=Object.keys(e),n=t.length;if(n<=15)this.pack_uint8(128+n);else if(n<=65535)this._bufferBuilder.append(222),this.pack_uint16(n);else if(n<=0xffffffff)this._bufferBuilder.append(223),this.pack_uint32(n);else throw Error("Invalid length");let r=n=>{if(n<t.length){let i=t[n];if(e.hasOwnProperty(i)){this.pack(i);let t=this.pack(e[i]);if(t instanceof Promise)return t.then(()=>r(n+1))}return r(n+1)}};return r(0)}pack_uint8(e){this._bufferBuilder.append(e)}pack_uint16(e){this._bufferBuilder.append(e>>8),this._bufferBuilder.append(255&e)}pack_uint32(e){let t=0|e;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t)}pack_uint64(e){let t=e/0x100000000,n=e%0x100000000;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t),this._bufferBuilder.append((0xff000000&n)>>>24),this._bufferBuilder.append((0xff0000&n)>>>16),this._bufferBuilder.append((65280&n)>>>8),this._bufferBuilder.append(255&n)}pack_int8(e){this._bufferBuilder.append(255&e)}pack_int16(e){this._bufferBuilder.append((65280&e)>>8),this._bufferBuilder.append(255&e)}pack_int32(e){this._bufferBuilder.append(e>>>24&255),this._bufferBuilder.append((0xff0000&e)>>>16),this._bufferBuilder.append((65280&e)>>>8),this._bufferBuilder.append(255&e)}pack_int64(e){let t=Math.floor(e/0x100000000),n=e%0x100000000;this._bufferBuilder.append((0xff000000&t)>>>24),this._bufferBuilder.append((0xff0000&t)>>>16),this._bufferBuilder.append((65280&t)>>>8),this._bufferBuilder.append(255&t),this._bufferBuilder.append((0xff000000&n)>>>24),this._bufferBuilder.append((0xff0000&n)>>>16),this._bufferBuilder.append((65280&n)>>>8),this._bufferBuilder.append(255&n)}constructor(){this._bufferBuilder=new r,this._textEncoder=new TextEncoder}}"use strict";let c=!0,p=!0;function d(e,t,n){let r=e.match(t);return r&&r.length>=n&&parseInt(r[n],10)}function l(e,t,n){if(!e.RTCPeerConnection)return;let r=e.RTCPeerConnection.prototype,i=r.addEventListener;r.addEventListener=function(e,r){if(e!==t)return i.apply(this,arguments);let s=e=>{let t=n(e);t&&(r.handleEvent?r.handleEvent(t):r(t))};return this._eventMap=this._eventMap||{},this._eventMap[t]||(this._eventMap[t]=new Map),this._eventMap[t].set(r,s),i.apply(this,[e,s])};let s=r.removeEventListener;r.removeEventListener=function(e,n){if(e!==t||!this._eventMap||!this._eventMap[t]||!this._eventMap[t].has(n))return s.apply(this,arguments);let r=this._eventMap[t].get(n);return this._eventMap[t].delete(n),0===this._eventMap[t].size&&delete this._eventMap[t],0===Object.keys(this._eventMap).length&&delete this._eventMap,s.apply(this,[e,r])},Object.defineProperty(r,"on"+t,{get(){return this["_on"+t]},set(e){this["_on"+t]&&(this.removeEventListener(t,this["_on"+t]),delete this["_on"+t]),e&&this.addEventListener(t,this["_on"+t]=e)},enumerable:!0,configurable:!0})}function h(e){return"boolean"!=typeof e?Error("Argument type: "+typeof e+". Please use a boolean."):(c=e,e?"adapter.js logging disabled":"adapter.js logging enabled")}function u(e){return"boolean"!=typeof e?Error("Argument type: "+typeof e+". Please use a boolean."):(p=!e,"adapter.js deprecation warnings "+(e?"disabled":"enabled"))}function f(){"object"==typeof window&&(c||"undefined"!=typeof console&&"function"==typeof console.log&&console.log.apply(console,arguments))}function m(e,t){p&&console.warn(e+" is deprecated, please use "+t+" instead.")}function _(e){return"[object Object]"===Object.prototype.toString.call(e)}function g(e,t,n){let r=n?"outbound-rtp":"inbound-rtp",i=new Map;if(null===t)return i;let s=[];return e.forEach(e=>{"track"===e.type&&e.trackIdentifier===t.id&&s.push(e)}),s.forEach(t=>{e.forEach(n=>{n.type===r&&n.trackId===t.id&&function e(t,n,r){!n||r.has(n.id)||(r.set(n.id,n),Object.keys(n).forEach(i=>{i.endsWith("Id")?e(t,t.get(n[i]),r):i.endsWith("Ids")&&n[i].forEach(n=>{e(t,t.get(n),r)})}))}(e,n,i)})}),i}"use strict";var y={};function C(e,t){let n=e&&e.navigator;if(!n.mediaDevices)return;let r=function(e){if("object"!=typeof e||e.mandatory||e.optional)return e;let t={};return Object.keys(e).forEach(n=>{if("require"===n||"advanced"===n||"mediaSource"===n)return;let r="object"==typeof e[n]?e[n]:{ideal:e[n]};void 0!==r.exact&&"number"==typeof r.exact&&(r.min=r.max=r.exact);let i=function(e,t){return e?e+t.charAt(0).toUpperCase()+t.slice(1):"deviceId"===t?"sourceId":t};if(void 0!==r.ideal){t.optional=t.optional||[];let e={};"number"==typeof r.ideal?(e[i("min",n)]=r.ideal,t.optional.push(e),(e={})[i("max",n)]=r.ideal):e[i("",n)]=r.ideal,t.optional.push(e)}void 0!==r.exact&&"number"!=typeof r.exact?(t.mandatory=t.mandatory||{},t.mandatory[i("",n)]=r.exact):["min","max"].forEach(e=>{void 0!==r[e]&&(t.mandatory=t.mandatory||{},t.mandatory[i(e,n)]=r[e])})}),e.advanced&&(t.optional=(t.optional||[]).concat(e.advanced)),t},i=function(e,i){if(t.version>=61)return i(e);if((e=JSON.parse(JSON.stringify(e)))&&"object"==typeof e.audio){let t=function(e,t,n){t in e&&!(n in e)&&(e[n]=e[t],delete e[t])};t((e=JSON.parse(JSON.stringify(e))).audio,"autoGainControl","googAutoGainControl"),t(e.audio,"noiseSuppression","googNoiseSuppression"),e.audio=r(e.audio)}if(e&&"object"==typeof e.video){let s=e.video.facingMode;s=s&&("object"==typeof s?s:{ideal:s});let o=t.version<66;if(s&&("user"===s.exact||"environment"===s.exact||"user"===s.ideal||"environment"===s.ideal)&&!(n.mediaDevices.getSupportedConstraints&&n.mediaDevices.getSupportedConstraints().facingMode&&!o)){let t;if(delete e.video.facingMode,"environment"===s.exact||"environment"===s.ideal?t=["back","rear"]:("user"===s.exact||"user"===s.ideal)&&(t=["front"]),t)return n.mediaDevices.enumerateDevices().then(n=>{let o=(n=n.filter(e=>"videoinput"===e.kind)).find(e=>t.some(t=>e.label.toLowerCase().includes(t)));return!o&&n.length&&t.includes("back")&&(o=n[n.length-1]),o&&(e.video.deviceId=s.exact?{exact:o.deviceId}:{ideal:o.deviceId}),e.video=r(e.video),f("chrome: "+JSON.stringify(e)),i(e)})}e.video=r(e.video)}return f("chrome: "+JSON.stringify(e)),i(e)},s=function(e){return t.version>=64?e:{name:({PermissionDeniedError:"NotAllowedError",PermissionDismissedError:"NotAllowedError",InvalidStateError:"NotAllowedError",DevicesNotFoundError:"NotFoundError",ConstraintNotSatisfiedError:"OverconstrainedError",TrackStartError:"NotReadableError",MediaDeviceFailedDueToShutdown:"NotAllowedError",MediaDeviceKillSwitchOn:"NotAllowedError",TabCaptureError:"AbortError",ScreenCaptureError:"AbortError",DeviceCaptureError:"AbortError"})[e.name]||e.name,message:e.message,constraint:e.constraint||e.constraintName,toString(){return this.name+(this.message&&": ")+this.message}}};if(n.getUserMedia=(function(e,t,r){i(e,e=>{n.webkitGetUserMedia(e,t,e=>{r&&r(s(e))})})}).bind(n),n.mediaDevices.getUserMedia){let e=n.mediaDevices.getUserMedia.bind(n.mediaDevices);n.mediaDevices.getUserMedia=function(t){return i(t,t=>e(t).then(e=>{if(t.audio&&!e.getAudioTracks().length||t.video&&!e.getVideoTracks().length)throw e.getTracks().forEach(e=>{e.stop()}),new DOMException("","NotFoundError");return e},e=>Promise.reject(s(e))))}}}"use strict";function v(e){e.MediaStream=e.MediaStream||e.webkitMediaStream}function b(e){if("object"!=typeof e||!e.RTCPeerConnection||"ontrack"in e.RTCPeerConnection.prototype)l(e,"track",e=>(e.transceiver||Object.defineProperty(e,"transceiver",{value:{receiver:e.receiver}}),e));else{Object.defineProperty(e.RTCPeerConnection.prototype,"ontrack",{get(){return this._ontrack},set(e){this._ontrack&&this.removeEventListener("track",this._ontrack),this.addEventListener("track",this._ontrack=e)},enumerable:!0,configurable:!0});let t=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){return this._ontrackpoly||(this._ontrackpoly=t=>{t.stream.addEventListener("addtrack",n=>{let r;r=e.RTCPeerConnection.prototype.getReceivers?this.getReceivers().find(e=>e.track&&e.track.id===n.track.id):{track:n.track};let i=new Event("track");i.track=n.track,i.receiver=r,i.transceiver={receiver:r},i.streams=[t.stream],this.dispatchEvent(i)}),t.stream.getTracks().forEach(n=>{let r;r=e.RTCPeerConnection.prototype.getReceivers?this.getReceivers().find(e=>e.track&&e.track.id===n.id):{track:n};let i=new Event("track");i.track=n,i.receiver=r,i.transceiver={receiver:r},i.streams=[t.stream],this.dispatchEvent(i)})},this.addEventListener("addstream",this._ontrackpoly)),t.apply(this,arguments)}}}function T(e){if("object"==typeof e&&e.RTCPeerConnection&&!("getSenders"in e.RTCPeerConnection.prototype)&&"createDTMFSender"in e.RTCPeerConnection.prototype){let t=function(e,t){return{track:t,get dtmf(){return void 0===this._dtmf&&("audio"===t.kind?this._dtmf=e.createDTMFSender(t):this._dtmf=null),this._dtmf},_pc:e}};if(!e.RTCPeerConnection.prototype.getSenders){e.RTCPeerConnection.prototype.getSenders=function(){return this._senders=this._senders||[],this._senders.slice()};let n=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addTrack=function(e,r){let i=n.apply(this,arguments);return i||(i=t(this,e),this._senders.push(i)),i};let r=e.RTCPeerConnection.prototype.removeTrack;e.RTCPeerConnection.prototype.removeTrack=function(e){r.apply(this,arguments);let t=this._senders.indexOf(e);-1!==t&&this._senders.splice(t,1)}}let n=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(e){this._senders=this._senders||[],n.apply(this,[e]),e.getTracks().forEach(e=>{this._senders.push(t(this,e))})};let r=e.RTCPeerConnection.prototype.removeStream;e.RTCPeerConnection.prototype.removeStream=function(e){this._senders=this._senders||[],r.apply(this,[e]),e.getTracks().forEach(e=>{let t=this._senders.find(t=>t.track===e);t&&this._senders.splice(this._senders.indexOf(t),1)})}}else if("object"==typeof e&&e.RTCPeerConnection&&"getSenders"in e.RTCPeerConnection.prototype&&"createDTMFSender"in e.RTCPeerConnection.prototype&&e.RTCRtpSender&&!("dtmf"in e.RTCRtpSender.prototype)){let t=e.RTCPeerConnection.prototype.getSenders;e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e},Object.defineProperty(e.RTCRtpSender.prototype,"dtmf",{get(){return void 0===this._dtmf&&("audio"===this.track.kind?this._dtmf=this._pc.createDTMFSender(this.track):this._dtmf=null),this._dtmf}})}}function S(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender&&e.RTCRtpReceiver))return;if(!("getStats"in e.RTCRtpSender.prototype)){let t=e.RTCPeerConnection.prototype.getSenders;t&&(e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e});let n=e.RTCPeerConnection.prototype.addTrack;n&&(e.RTCPeerConnection.prototype.addTrack=function(){let e=n.apply(this,arguments);return e._pc=this,e}),e.RTCRtpSender.prototype.getStats=function(){let e=this;return this._pc.getStats().then(t=>g(t,e.track,!0))}}if(!("getStats"in e.RTCRtpReceiver.prototype)){let t=e.RTCPeerConnection.prototype.getReceivers;t&&(e.RTCPeerConnection.prototype.getReceivers=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e}),l(e,"track",e=>(e.receiver._pc=e.srcElement,e)),e.RTCRtpReceiver.prototype.getStats=function(){let e=this;return this._pc.getStats().then(t=>g(t,e.track,!1))}}if(!("getStats"in e.RTCRtpSender.prototype&&"getStats"in e.RTCRtpReceiver.prototype))return;let t=e.RTCPeerConnection.prototype.getStats;e.RTCPeerConnection.prototype.getStats=function(){if(arguments.length>0&&arguments[0]instanceof e.MediaStreamTrack){let e,t,n,r=arguments[0];return(this.getSenders().forEach(t=>{t.track===r&&(e?n=!0:e=t)}),this.getReceivers().forEach(e=>(e.track===r&&(t?n=!0:t=e),e.track===r)),n||e&&t)?Promise.reject(new DOMException("There are more than one sender or receiver for the track.","InvalidAccessError")):e?e.getStats():t?t.getStats():Promise.reject(new DOMException("There is no sender or receiver for the track.","InvalidAccessError"))}return t.apply(this,arguments)}}function k(e){e.RTCPeerConnection.prototype.getLocalStreams=function(){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},Object.keys(this._shimmedLocalStreams).map(e=>this._shimmedLocalStreams[e][0])};let t=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addTrack=function(e,n){if(!n)return t.apply(this,arguments);this._shimmedLocalStreams=this._shimmedLocalStreams||{};let r=t.apply(this,arguments);return this._shimmedLocalStreams[n.id]?-1===this._shimmedLocalStreams[n.id].indexOf(r)&&this._shimmedLocalStreams[n.id].push(r):this._shimmedLocalStreams[n.id]=[n,r],r};let n=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(e){this._shimmedLocalStreams=this._shimmedLocalStreams||{},e.getTracks().forEach(e=>{if(this.getSenders().find(t=>t.track===e))throw new DOMException("Track already exists.","InvalidAccessError")});let t=this.getSenders();n.apply(this,arguments);let r=this.getSenders().filter(e=>-1===t.indexOf(e));this._shimmedLocalStreams[e.id]=[e].concat(r)};let r=e.RTCPeerConnection.prototype.removeStream;e.RTCPeerConnection.prototype.removeStream=function(e){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},delete this._shimmedLocalStreams[e.id],r.apply(this,arguments)};let i=e.RTCPeerConnection.prototype.removeTrack;e.RTCPeerConnection.prototype.removeTrack=function(e){return this._shimmedLocalStreams=this._shimmedLocalStreams||{},e&&Object.keys(this._shimmedLocalStreams).forEach(t=>{let n=this._shimmedLocalStreams[t].indexOf(e);-1!==n&&this._shimmedLocalStreams[t].splice(n,1),1===this._shimmedLocalStreams[t].length&&delete this._shimmedLocalStreams[t]}),i.apply(this,arguments)}}function R(e,t){if(!e.RTCPeerConnection)return;if(e.RTCPeerConnection.prototype.addTrack&&t.version>=65)return k(e);let n=e.RTCPeerConnection.prototype.getLocalStreams;e.RTCPeerConnection.prototype.getLocalStreams=function(){let e=n.apply(this);return this._reverseStreams=this._reverseStreams||{},e.map(e=>this._reverseStreams[e.id])};let r=e.RTCPeerConnection.prototype.addStream;e.RTCPeerConnection.prototype.addStream=function(t){if(this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{},t.getTracks().forEach(e=>{if(this.getSenders().find(t=>t.track===e))throw new DOMException("Track already exists.","InvalidAccessError")}),!this._reverseStreams[t.id]){let n=new e.MediaStream(t.getTracks());this._streams[t.id]=n,this._reverseStreams[n.id]=t,t=n}r.apply(this,[t])};let i=e.RTCPeerConnection.prototype.removeStream;function s(e,t){let n=t.sdp;return Object.keys(e._reverseStreams||[]).forEach(t=>{let r=e._reverseStreams[t],i=e._streams[r.id];n=n.replace(RegExp(i.id,"g"),r.id)}),new RTCSessionDescription({type:t.type,sdp:n})}e.RTCPeerConnection.prototype.removeStream=function(e){this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{},i.apply(this,[this._streams[e.id]||e]),delete this._reverseStreams[this._streams[e.id]?this._streams[e.id].id:e.id],delete this._streams[e.id]},e.RTCPeerConnection.prototype.addTrack=function(t,n){if("closed"===this.signalingState)throw new DOMException("The RTCPeerConnection's signalingState is 'closed'.","InvalidStateError");let r=[].slice.call(arguments,1);if(1!==r.length||!r[0].getTracks().find(e=>e===t))throw new DOMException("The adapter.js addTrack polyfill only supports a single  stream which is associated with the specified track.","NotSupportedError");if(this.getSenders().find(e=>e.track===t))throw new DOMException("Track already exists.","InvalidAccessError");this._streams=this._streams||{},this._reverseStreams=this._reverseStreams||{};let i=this._streams[n.id];if(i)i.addTrack(t),Promise.resolve().then(()=>{this.dispatchEvent(new Event("negotiationneeded"))});else{let r=new e.MediaStream([t]);this._streams[n.id]=r,this._reverseStreams[r.id]=n,this.addStream(r)}return this.getSenders().find(e=>e.track===t)},["createOffer","createAnswer"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){let e=arguments,t=arguments.length&&"function"==typeof arguments[0];return t?n.apply(this,[t=>{let n=s(this,t);e[0].apply(null,[n])},t=>{e[1]&&e[1].apply(null,t)},arguments[2]]):n.apply(this,arguments).then(e=>s(this,e))}})[t]});let o=e.RTCPeerConnection.prototype.setLocalDescription;e.RTCPeerConnection.prototype.setLocalDescription=function(){var e,t;let n;return arguments.length&&arguments[0].type?(arguments[0]=(e=this,t=arguments[0],n=t.sdp,Object.keys(e._reverseStreams||[]).forEach(t=>{let r=e._reverseStreams[t],i=e._streams[r.id];n=n.replace(RegExp(r.id,"g"),i.id)}),new RTCSessionDescription({type:t.type,sdp:n})),o.apply(this,arguments)):o.apply(this,arguments)};let a=Object.getOwnPropertyDescriptor(e.RTCPeerConnection.prototype,"localDescription");Object.defineProperty(e.RTCPeerConnection.prototype,"localDescription",{get(){let e=a.get.apply(this);return""===e.type?e:s(this,e)}}),e.RTCPeerConnection.prototype.removeTrack=function(e){let t;if("closed"===this.signalingState)throw new DOMException("The RTCPeerConnection's signalingState is 'closed'.","InvalidStateError");if(!e._pc)throw new DOMException("Argument 1 of RTCPeerConnection.removeTrack does not implement interface RTCRtpSender.","TypeError");if(e._pc!==this)throw new DOMException("Sender was not created by this connection.","InvalidAccessError");this._streams=this._streams||{},Object.keys(this._streams).forEach(n=>{this._streams[n].getTracks().find(t=>e.track===t)&&(t=this._streams[n])}),t&&(1===t.getTracks().length?this.removeStream(this._reverseStreams[t.id]):t.removeTrack(e.track),this.dispatchEvent(new Event("negotiationneeded")))}}function P(e,t){!e.RTCPeerConnection&&e.webkitRTCPeerConnection&&(e.RTCPeerConnection=e.webkitRTCPeerConnection),e.RTCPeerConnection&&t.version<53&&["setLocalDescription","setRemoteDescription","addIceCandidate"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){return arguments[0]=new("addIceCandidate"===t?e.RTCIceCandidate:e.RTCSessionDescription)(arguments[0]),n.apply(this,arguments)}})[t]})}function w(e,t){l(e,"negotiationneeded",e=>{let n=e.target;if(!(t.version<72)&&(!n.getConfiguration||"plan-b"!==n.getConfiguration().sdpSemantics)||"stable"===n.signalingState)return e})}"use strict";e(y,"shimMediaStream",()=>v),e(y,"shimOnTrack",()=>b),e(y,"shimGetSendersWithDtmf",()=>T),e(y,"shimSenderReceiverGetStats",()=>S),e(y,"shimAddTrackRemoveTrackWithNative",()=>k),e(y,"shimAddTrackRemoveTrack",()=>R),e(y,"shimPeerConnection",()=>P),e(y,"fixNegotiationNeeded",()=>w),e(y,"shimGetUserMedia",()=>C);var E={};function x(e,t){let n=e&&e.navigator,r=e&&e.MediaStreamTrack;if(n.getUserMedia=function(e,t,r){m("navigator.getUserMedia","navigator.mediaDevices.getUserMedia"),n.mediaDevices.getUserMedia(e).then(t,r)},!(t.version>55&&"autoGainControl"in n.mediaDevices.getSupportedConstraints())){let e=function(e,t,n){t in e&&!(n in e)&&(e[n]=e[t],delete e[t])},t=n.mediaDevices.getUserMedia.bind(n.mediaDevices);if(n.mediaDevices.getUserMedia=function(n){return"object"==typeof n&&"object"==typeof n.audio&&(e((n=JSON.parse(JSON.stringify(n))).audio,"autoGainControl","mozAutoGainControl"),e(n.audio,"noiseSuppression","mozNoiseSuppression")),t(n)},r&&r.prototype.getSettings){let t=r.prototype.getSettings;r.prototype.getSettings=function(){let n=t.apply(this,arguments);return e(n,"mozAutoGainControl","autoGainControl"),e(n,"mozNoiseSuppression","noiseSuppression"),n}}if(r&&r.prototype.applyConstraints){let t=r.prototype.applyConstraints;r.prototype.applyConstraints=function(n){return"audio"===this.kind&&"object"==typeof n&&(e(n=JSON.parse(JSON.stringify(n)),"autoGainControl","mozAutoGainControl"),e(n,"noiseSuppression","mozNoiseSuppression")),t.apply(this,[n])}}}}"use strict";function D(e,t){e.navigator.mediaDevices&&"getDisplayMedia"in e.navigator.mediaDevices||e.navigator.mediaDevices&&(e.navigator.mediaDevices.getDisplayMedia=function(n){if(!(n&&n.video)){let e=new DOMException("getDisplayMedia without video constraints is undefined");return e.name="NotFoundError",e.code=8,Promise.reject(e)}return!0===n.video?n.video={mediaSource:t}:n.video.mediaSource=t,e.navigator.mediaDevices.getUserMedia(n)})}"use strict";function I(e){"object"==typeof e&&e.RTCTrackEvent&&"receiver"in e.RTCTrackEvent.prototype&&!("transceiver"in e.RTCTrackEvent.prototype)&&Object.defineProperty(e.RTCTrackEvent.prototype,"transceiver",{get(){return{receiver:this.receiver}}})}function M(e,t){if("object"!=typeof e||!(e.RTCPeerConnection||e.mozRTCPeerConnection))return;!e.RTCPeerConnection&&e.mozRTCPeerConnection&&(e.RTCPeerConnection=e.mozRTCPeerConnection),t.version<53&&["setLocalDescription","setRemoteDescription","addIceCandidate"].forEach(function(t){let n=e.RTCPeerConnection.prototype[t];e.RTCPeerConnection.prototype[t]=({[t](){return arguments[0]=new("addIceCandidate"===t?e.RTCIceCandidate:e.RTCSessionDescription)(arguments[0]),n.apply(this,arguments)}})[t]});let n={inboundrtp:"inbound-rtp",outboundrtp:"outbound-rtp",candidatepair:"candidate-pair",localcandidate:"local-candidate",remotecandidate:"remote-candidate"},r=e.RTCPeerConnection.prototype.getStats;e.RTCPeerConnection.prototype.getStats=function(){let[e,i,s]=arguments;return r.apply(this,[e||null]).then(e=>{if(t.version<53&&!i)try{e.forEach(e=>{e.type=n[e.type]||e.type})}catch(t){if("TypeError"!==t.name)throw t;e.forEach((t,r)=>{e.set(r,Object.assign({},t,{type:n[t.type]||t.type}))})}return e}).then(i,s)}}function O(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender)||e.RTCRtpSender&&"getStats"in e.RTCRtpSender.prototype)return;let t=e.RTCPeerConnection.prototype.getSenders;t&&(e.RTCPeerConnection.prototype.getSenders=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e});let n=e.RTCPeerConnection.prototype.addTrack;n&&(e.RTCPeerConnection.prototype.addTrack=function(){let e=n.apply(this,arguments);return e._pc=this,e}),e.RTCRtpSender.prototype.getStats=function(){return this.track?this._pc.getStats(this.track):Promise.resolve(new Map)}}function L(e){if(!("object"==typeof e&&e.RTCPeerConnection&&e.RTCRtpSender)||e.RTCRtpSender&&"getStats"in e.RTCRtpReceiver.prototype)return;let t=e.RTCPeerConnection.prototype.getReceivers;t&&(e.RTCPeerConnection.prototype.getReceivers=function(){let e=t.apply(this,[]);return e.forEach(e=>e._pc=this),e}),l(e,"track",e=>(e.receiver._pc=e.srcElement,e)),e.RTCRtpReceiver.prototype.getStats=function(){return this._pc.getStats(this.track)}}function A(e){!e.RTCPeerConnection||"removeStream"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.removeStream=function(e){m("removeStream","removeTrack"),this.getSenders().forEach(t=>{t.track&&e.getTracks().includes(t.track)&&this.removeTrack(t)})})}function j(e){e.DataChannel&&!e.RTCDataChannel&&(e.RTCDataChannel=e.DataChannel)}function B(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.addTransceiver;t&&(e.RTCPeerConnection.prototype.addTransceiver=function(){this.setParametersPromises=[];let e=arguments[1]&&arguments[1].sendEncodings;void 0===e&&(e=[]);let n=(e=[...e]).length>0;n&&e.forEach(e=>{if("rid"in e&&!/^[a-z0-9]{0,16}$/i.test(e.rid))throw TypeError("Invalid RID value provided.");if("scaleResolutionDownBy"in e&&!(parseFloat(e.scaleResolutionDownBy)>=1))throw RangeError("scale_resolution_down_by must be >= 1.0");if("maxFramerate"in e&&!(parseFloat(e.maxFramerate)>=0))throw RangeError("max_framerate must be >= 0.0")});let r=t.apply(this,arguments);if(n){let{sender:t}=r,n=t.getParameters();"encodings"in n&&(1!==n.encodings.length||0!==Object.keys(n.encodings[0]).length)||(n.encodings=e,t.sendEncodings=e,this.setParametersPromises.push(t.setParameters(n).then(()=>{delete t.sendEncodings}).catch(()=>{delete t.sendEncodings})))}return r})}function U(e){if(!("object"==typeof e&&e.RTCRtpSender))return;let t=e.RTCRtpSender.prototype.getParameters;t&&(e.RTCRtpSender.prototype.getParameters=function(){let e=t.apply(this,arguments);return"encodings"in e||(e.encodings=[].concat(this.sendEncodings||[{}])),e})}function F(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.createOffer;e.RTCPeerConnection.prototype.createOffer=function(){return this.setParametersPromises&&this.setParametersPromises.length?Promise.all(this.setParametersPromises).then(()=>t.apply(this,arguments)).finally(()=>{this.setParametersPromises=[]}):t.apply(this,arguments)}}function N(e){if(!("object"==typeof e&&e.RTCPeerConnection))return;let t=e.RTCPeerConnection.prototype.createAnswer;e.RTCPeerConnection.prototype.createAnswer=function(){return this.setParametersPromises&&this.setParametersPromises.length?Promise.all(this.setParametersPromises).then(()=>t.apply(this,arguments)).finally(()=>{this.setParametersPromises=[]}):t.apply(this,arguments)}}"use strict";e(E,"shimOnTrack",()=>I),e(E,"shimPeerConnection",()=>M),e(E,"shimSenderGetStats",()=>O),e(E,"shimReceiverGetStats",()=>L),e(E,"shimRemoveStream",()=>A),e(E,"shimRTCDataChannel",()=>j),e(E,"shimAddTransceiver",()=>B),e(E,"shimGetParameters",()=>U),e(E,"shimCreateOffer",()=>F),e(E,"shimCreateAnswer",()=>N),e(E,"shimGetUserMedia",()=>x),e(E,"shimGetDisplayMedia",()=>D);var z={};function $(e){if("object"==typeof e&&e.RTCPeerConnection){if("getLocalStreams"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.getLocalStreams=function(){return this._localStreams||(this._localStreams=[]),this._localStreams}),!("addStream"in e.RTCPeerConnection.prototype)){let t=e.RTCPeerConnection.prototype.addTrack;e.RTCPeerConnection.prototype.addStream=function(e){this._localStreams||(this._localStreams=[]),this._localStreams.includes(e)||this._localStreams.push(e),e.getAudioTracks().forEach(n=>t.call(this,n,e)),e.getVideoTracks().forEach(n=>t.call(this,n,e))},e.RTCPeerConnection.prototype.addTrack=function(e,...n){return n&&n.forEach(e=>{this._localStreams?this._localStreams.includes(e)||this._localStreams.push(e):this._localStreams=[e]}),t.apply(this,arguments)}}"removeStream"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.removeStream=function(e){this._localStreams||(this._localStreams=[]);let t=this._localStreams.indexOf(e);if(-1===t)return;this._localStreams.splice(t,1);let n=e.getTracks();this.getSenders().forEach(e=>{n.includes(e.track)&&this.removeTrack(e)})})}}function V(e){if("object"==typeof e&&e.RTCPeerConnection&&("getRemoteStreams"in e.RTCPeerConnection.prototype||(e.RTCPeerConnection.prototype.getRemoteStreams=function(){return this._remoteStreams?this._remoteStreams:[]}),!("onaddstream"in e.RTCPeerConnection.prototype))){Object.defineProperty(e.RTCPeerConnection.prototype,"onaddstream",{get(){return this._onaddstream},set(e){this._onaddstream&&(this.removeEventListener("addstream",this._onaddstream),this.removeEventListener("track",this._onaddstreampoly)),this.addEventListener("addstream",this._onaddstream=e),this.addEventListener("track",this._onaddstreampoly=e=>{e.streams.forEach(e=>{if(this._remoteStreams||(this._remoteStreams=[]),this._remoteStreams.includes(e))return;this._remoteStreams.push(e);let t=new Event("addstream");t.stream=e,this.dispatchEvent(t)})})}});let t=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){let e=this;return this._onaddstreampoly||this.addEventListener("track",this._onaddstreampoly=function(t){t.streams.forEach(t=>{if(e._remoteStreams||(e._remoteStreams=[]),e._remoteStreams.indexOf(t)>=0)return;e._remoteStreams.push(t);let n=new Event("addstream");n.stream=t,e.dispatchEvent(n)})}),t.apply(e,arguments)}}}function G(e){if("object"!=typeof e||!e.RTCPeerConnection)return;let t=e.RTCPeerConnection.prototype,n=t.createOffer,r=t.createAnswer,i=t.setLocalDescription,s=t.setRemoteDescription,o=t.addIceCandidate;t.createOffer=function(e,t){let r=arguments.length>=2?arguments[2]:arguments[0],i=n.apply(this,[r]);return t?(i.then(e,t),Promise.resolve()):i},t.createAnswer=function(e,t){let n=arguments.length>=2?arguments[2]:arguments[0],i=r.apply(this,[n]);return t?(i.then(e,t),Promise.resolve()):i};let a=function(e,t,n){let r=i.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r};t.setLocalDescription=a,t.setRemoteDescription=a=function(e,t,n){let r=s.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r},t.addIceCandidate=function(e,t,n){let r=o.apply(this,[e]);return n?(r.then(t,n),Promise.resolve()):r}}function J(e){let t=e&&e.navigator;if(t.mediaDevices&&t.mediaDevices.getUserMedia){let e=t.mediaDevices,n=e.getUserMedia.bind(e);t.mediaDevices.getUserMedia=e=>n(W(e))}!t.getUserMedia&&t.mediaDevices&&t.mediaDevices.getUserMedia&&(t.getUserMedia=(function(e,n,r){t.mediaDevices.getUserMedia(e).then(n,r)}).bind(t))}function W(e){return e&&void 0!==e.video?Object.assign({},e,{video:function e(t){return _(t)?Object.keys(t).reduce(function(n,r){let i=_(t[r]),s=i?e(t[r]):t[r],o=i&&!Object.keys(s).length;return void 0===s||o?n:Object.assign(n,{[r]:s})},{}):t}(e.video)}):e}function Y(e){if(!e.RTCPeerConnection)return;let t=e.RTCPeerConnection;e.RTCPeerConnection=function(e,n){if(e&&e.iceServers){let t=[];for(let n=0;n<e.iceServers.length;n++){let r=e.iceServers[n];void 0===r.urls&&r.url?(m("RTCIceServer.url","RTCIceServer.urls"),(r=JSON.parse(JSON.stringify(r))).urls=r.url,delete r.url,t.push(r)):t.push(e.iceServers[n])}e.iceServers=t}return new t(e,n)},e.RTCPeerConnection.prototype=t.prototype,"generateCertificate"in t&&Object.defineProperty(e.RTCPeerConnection,"generateCertificate",{get:()=>t.generateCertificate})}function H(e){"object"==typeof e&&e.RTCTrackEvent&&"receiver"in e.RTCTrackEvent.prototype&&!("transceiver"in e.RTCTrackEvent.prototype)&&Object.defineProperty(e.RTCTrackEvent.prototype,"transceiver",{get(){return{receiver:this.receiver}}})}function K(e){let t=e.RTCPeerConnection.prototype.createOffer;e.RTCPeerConnection.prototype.createOffer=function(e){if(e){void 0!==e.offerToReceiveAudio&&(e.offerToReceiveAudio=!!e.offerToReceiveAudio);let t=this.getTransceivers().find(e=>"audio"===e.receiver.track.kind);!1===e.offerToReceiveAudio&&t?"sendrecv"===t.direction?t.setDirection?t.setDirection("sendonly"):t.direction="sendonly":"recvonly"===t.direction&&(t.setDirection?t.setDirection("inactive"):t.direction="inactive"):!0!==e.offerToReceiveAudio||t||this.addTransceiver("audio",{direction:"recvonly"}),void 0!==e.offerToReceiveVideo&&(e.offerToReceiveVideo=!!e.offerToReceiveVideo);let n=this.getTransceivers().find(e=>"video"===e.receiver.track.kind);!1===e.offerToReceiveVideo&&n?"sendrecv"===n.direction?n.setDirection?n.setDirection("sendonly"):n.direction="sendonly":"recvonly"===n.direction&&(n.setDirection?n.setDirection("inactive"):n.direction="inactive"):!0!==e.offerToReceiveVideo||n||this.addTransceiver("video",{direction:"recvonly"})}return t.apply(this,arguments)}}function X(e){"object"!=typeof e||e.AudioContext||(e.AudioContext=e.webkitAudioContext)}e(z,"shimLocalStreamsAPI",()=>$),e(z,"shimRemoteStreamsAPI",()=>V),e(z,"shimCallbacksAPI",()=>G),e(z,"shimGetUserMedia",()=>J),e(z,"shimConstraints",()=>W),e(z,"shimRTCIceServerUrls",()=>Y),e(z,"shimTrackEventTransceiver",()=>H),e(z,"shimCreateOfferLegacy",()=>K),e(z,"shimAudioContext",()=>X);var Q={};"use strict";e(Q,"shimRTCIceCandidate",()=>ee),e(Q,"shimRTCIceCandidateRelayProtocol",()=>et),e(Q,"shimMaxMessageSize",()=>en),e(Q,"shimSendThrowTypeError",()=>er),e(Q,"shimConnectionState",()=>ei),e(Q,"removeExtmapAllowMixed",()=>es),e(Q,"shimAddIceCandidateNullOrEmpty",()=>eo),e(Q,"shimParameterlessSetLocalDescription",()=>ea);var q={};"use strict";let Z={};function ee(e){if(!e.RTCIceCandidate||e.RTCIceCandidate&&"foundation"in e.RTCIceCandidate.prototype)return;let n=e.RTCIceCandidate;e.RTCIceCandidate=function(e){if("object"==typeof e&&e.candidate&&0===e.candidate.indexOf("a=")&&((e=JSON.parse(JSON.stringify(e))).candidate=e.candidate.substring(2)),e.candidate&&e.candidate.length){let r=new n(e),i=t(q).parseCandidate(e.candidate);for(let e in i)e in r||Object.defineProperty(r,e,{value:i[e]});return r.toJSON=function(){return{candidate:r.candidate,sdpMid:r.sdpMid,sdpMLineIndex:r.sdpMLineIndex,usernameFragment:r.usernameFragment}},r}return new n(e)},e.RTCIceCandidate.prototype=n.prototype,l(e,"icecandidate",t=>(t.candidate&&Object.defineProperty(t,"candidate",{value:new e.RTCIceCandidate(t.candidate),writable:"false"}),t))}function et(e){!e.RTCIceCandidate||e.RTCIceCandidate&&"relayProtocol"in e.RTCIceCandidate.prototype||l(e,"icecandidate",e=>{if(e.candidate){let n=t(q).parseCandidate(e.candidate.candidate);"relay"===n.type&&(e.candidate.relayProtocol=({0:"tls",1:"tcp",2:"udp"})[n.priority>>24])}return e})}function en(e,n){if(!e.RTCPeerConnection)return;"sctp"in e.RTCPeerConnection.prototype||Object.defineProperty(e.RTCPeerConnection.prototype,"sctp",{get(){return void 0===this._sctp?null:this._sctp}});let r=function(e){if(!e||!e.sdp)return!1;let n=t(q).splitSections(e.sdp);return n.shift(),n.some(e=>{let n=t(q).parseMLine(e);return n&&"application"===n.kind&&-1!==n.protocol.indexOf("SCTP")})},i=function(e){let t=e.sdp.match(/mozilla...THIS_IS_SDPARTA-(\d+)/);if(null===t||t.length<2)return -1;let n=parseInt(t[1],10);return n!=n?-1:n},s=function(e){let t=65536;return"firefox"===n.browser&&(t=n.version<57?-1===e?16384:0x7ffffff5:n.version<60?57===n.version?65535:65536:0x7ffffff5),t},o=function(e,r){let i=65536;"firefox"===n.browser&&57===n.version&&(i=65535);let s=t(q).matchPrefix(e.sdp,"a=max-message-size:");return s.length>0?i=parseInt(s[0].substring(19),10):"firefox"===n.browser&&-1!==r&&(i=0x7ffffff5),i},a=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(){if(this._sctp=null,"chrome"===n.browser&&n.version>=76){let{sdpSemantics:e}=this.getConfiguration();"plan-b"===e&&Object.defineProperty(this,"sctp",{get(){return void 0===this._sctp?null:this._sctp},enumerable:!0,configurable:!0})}if(r(arguments[0])){let e,t=i(arguments[0]),n=s(t),r=o(arguments[0],t);e=0===n&&0===r?Number.POSITIVE_INFINITY:0===n||0===r?Math.max(n,r):Math.min(n,r);let a={};Object.defineProperty(a,"maxMessageSize",{get:()=>e}),this._sctp=a}return a.apply(this,arguments)}}function er(e){if(!(e.RTCPeerConnection&&"createDataChannel"in e.RTCPeerConnection.prototype))return;function t(e,t){let n=e.send;e.send=function(){let r=arguments[0],i=r.length||r.size||r.byteLength;if("open"===e.readyState&&t.sctp&&i>t.sctp.maxMessageSize)throw TypeError("Message too large (can send a maximum of "+t.sctp.maxMessageSize+" bytes)");return n.apply(e,arguments)}}let n=e.RTCPeerConnection.prototype.createDataChannel;e.RTCPeerConnection.prototype.createDataChannel=function(){let e=n.apply(this,arguments);return t(e,this),e},l(e,"datachannel",e=>(t(e.channel,e.target),e))}function ei(e){if(!e.RTCPeerConnection||"connectionState"in e.RTCPeerConnection.prototype)return;let t=e.RTCPeerConnection.prototype;Object.defineProperty(t,"connectionState",{get(){return({completed:"connected",checking:"connecting"})[this.iceConnectionState]||this.iceConnectionState},enumerable:!0,configurable:!0}),Object.defineProperty(t,"onconnectionstatechange",{get(){return this._onconnectionstatechange||null},set(e){this._onconnectionstatechange&&(this.removeEventListener("connectionstatechange",this._onconnectionstatechange),delete this._onconnectionstatechange),e&&this.addEventListener("connectionstatechange",this._onconnectionstatechange=e)},enumerable:!0,configurable:!0}),["setLocalDescription","setRemoteDescription"].forEach(e=>{let n=t[e];t[e]=function(){return this._connectionstatechangepoly||(this._connectionstatechangepoly=e=>{let t=e.target;if(t._lastConnectionState!==t.connectionState){t._lastConnectionState=t.connectionState;let n=new Event("connectionstatechange",e);t.dispatchEvent(n)}return e},this.addEventListener("iceconnectionstatechange",this._connectionstatechangepoly)),n.apply(this,arguments)}})}function es(e,t){if(!e.RTCPeerConnection||"chrome"===t.browser&&t.version>=71||"safari"===t.browser&&t.version>=605)return;let n=e.RTCPeerConnection.prototype.setRemoteDescription;e.RTCPeerConnection.prototype.setRemoteDescription=function(t){if(t&&t.sdp&&-1!==t.sdp.indexOf("\na=extmap-allow-mixed")){let n=t.sdp.split("\n").filter(e=>"a=extmap-allow-mixed"!==e.trim()).join("\n");e.RTCSessionDescription&&t instanceof e.RTCSessionDescription?arguments[0]=new e.RTCSessionDescription({type:t.type,sdp:n}):t.sdp=n}return n.apply(this,arguments)}}function eo(e,t){if(!(e.RTCPeerConnection&&e.RTCPeerConnection.prototype))return;let n=e.RTCPeerConnection.prototype.addIceCandidate;n&&0!==n.length&&(e.RTCPeerConnection.prototype.addIceCandidate=function(){return arguments[0]?("chrome"===t.browser&&t.version<78||"firefox"===t.browser&&t.version<68||"safari"===t.browser)&&arguments[0]&&""===arguments[0].candidate?Promise.resolve():n.apply(this,arguments):(arguments[1]&&arguments[1].apply(null),Promise.resolve())})}function ea(e,t){if(!(e.RTCPeerConnection&&e.RTCPeerConnection.prototype))return;let n=e.RTCPeerConnection.prototype.setLocalDescription;n&&0!==n.length&&(e.RTCPeerConnection.prototype.setLocalDescription=function(){let e=arguments[0]||{};if("object"!=typeof e||e.type&&e.sdp)return n.apply(this,arguments);if(!(e={type:e.type,sdp:e.sdp}).type)switch(this.signalingState){case"stable":case"have-local-offer":case"have-remote-pranswer":e.type="offer";break;default:e.type="answer"}return e.sdp||"offer"!==e.type&&"answer"!==e.type?n.apply(this,[e]):("offer"===e.type?this.createOffer:this.createAnswer).apply(this).then(e=>n.apply(this,[e]))})}"use strict";Z.generateIdentifier=function(){return Math.random().toString(36).substring(2,12)},Z.localCName=Z.generateIdentifier(),Z.splitLines=function(e){return e.trim().split("\n").map(e=>e.trim())},Z.splitSections=function(e){return e.split("\nm=").map((e,t)=>(t>0?"m="+e:e).trim()+"\r\n")},Z.getDescription=function(e){let t=Z.splitSections(e);return t&&t[0]},Z.getMediaSections=function(e){let t=Z.splitSections(e);return t.shift(),t},Z.matchPrefix=function(e,t){return Z.splitLines(e).filter(e=>0===e.indexOf(t))},Z.parseCandidate=function(e){let t,n={foundation:(t=0===e.indexOf("a=candidate:")?e.substring(12).split(" "):e.substring(10).split(" "))[0],component:{1:"rtp",2:"rtcp"}[t[1]]||t[1],protocol:t[2].toLowerCase(),priority:parseInt(t[3],10),ip:t[4],address:t[4],port:parseInt(t[5],10),type:t[7]};for(let e=8;e<t.length;e+=2)switch(t[e]){case"raddr":n.relatedAddress=t[e+1];break;case"rport":n.relatedPort=parseInt(t[e+1],10);break;case"tcptype":n.tcpType=t[e+1];break;case"ufrag":n.ufrag=t[e+1],n.usernameFragment=t[e+1];break;default:void 0===n[t[e]]&&(n[t[e]]=t[e+1])}return n},Z.writeCandidate=function(e){let t=[];t.push(e.foundation);let n=e.component;"rtp"===n?t.push(1):"rtcp"===n?t.push(2):t.push(n),t.push(e.protocol.toUpperCase()),t.push(e.priority),t.push(e.address||e.ip),t.push(e.port);let r=e.type;return t.push("typ"),t.push(r),"host"!==r&&e.relatedAddress&&e.relatedPort&&(t.push("raddr"),t.push(e.relatedAddress),t.push("rport"),t.push(e.relatedPort)),e.tcpType&&"tcp"===e.protocol.toLowerCase()&&(t.push("tcptype"),t.push(e.tcpType)),(e.usernameFragment||e.ufrag)&&(t.push("ufrag"),t.push(e.usernameFragment||e.ufrag)),"candidate:"+t.join(" ")},Z.parseIceOptions=function(e){return e.substring(14).split(" ")},Z.parseRtpMap=function(e){let t=e.substring(9).split(" "),n={payloadType:parseInt(t.shift(),10)};return n.name=(t=t[0].split("/"))[0],n.clockRate=parseInt(t[1],10),n.channels=3===t.length?parseInt(t[2],10):1,n.numChannels=n.channels,n},Z.writeRtpMap=function(e){let t=e.payloadType;void 0!==e.preferredPayloadType&&(t=e.preferredPayloadType);let n=e.channels||e.numChannels||1;return"a=rtpmap:"+t+" "+e.name+"/"+e.clockRate+(1!==n?"/"+n:"")+"\r\n"},Z.parseExtmap=function(e){let t=e.substring(9).split(" ");return{id:parseInt(t[0],10),direction:t[0].indexOf("/")>0?t[0].split("/")[1]:"sendrecv",uri:t[1],attributes:t.slice(2).join(" ")}},Z.writeExtmap=function(e){return"a=extmap:"+(e.id||e.preferredId)+(e.direction&&"sendrecv"!==e.direction?"/"+e.direction:"")+" "+e.uri+(e.attributes?" "+e.attributes:"")+"\r\n"},Z.parseFmtp=function(e){let t,n={},r=e.substring(e.indexOf(" ")+1).split(";");for(let e=0;e<r.length;e++)n[(t=r[e].trim().split("="))[0].trim()]=t[1];return n},Z.writeFmtp=function(e){let t="",n=e.payloadType;if(void 0!==e.preferredPayloadType&&(n=e.preferredPayloadType),e.parameters&&Object.keys(e.parameters).length){let r=[];Object.keys(e.parameters).forEach(t=>{void 0!==e.parameters[t]?r.push(t+"="+e.parameters[t]):r.push(t)}),t+="a=fmtp:"+n+" "+r.join(";")+"\r\n"}return t},Z.parseRtcpFb=function(e){let t=e.substring(e.indexOf(" ")+1).split(" ");return{type:t.shift(),parameter:t.join(" ")}},Z.writeRtcpFb=function(e){let t="",n=e.payloadType;return void 0!==e.preferredPayloadType&&(n=e.preferredPayloadType),e.rtcpFeedback&&e.rtcpFeedback.length&&e.rtcpFeedback.forEach(e=>{t+="a=rtcp-fb:"+n+" "+e.type+(e.parameter&&e.parameter.length?" "+e.parameter:"")+"\r\n"}),t},Z.parseSsrcMedia=function(e){let t=e.indexOf(" "),n={ssrc:parseInt(e.substring(7,t),10)},r=e.indexOf(":",t);return r>-1?(n.attribute=e.substring(t+1,r),n.value=e.substring(r+1)):n.attribute=e.substring(t+1),n},Z.parseSsrcGroup=function(e){let t=e.substring(13).split(" ");return{semantics:t.shift(),ssrcs:t.map(e=>parseInt(e,10))}},Z.getMid=function(e){let t=Z.matchPrefix(e,"a=mid:")[0];if(t)return t.substring(6)},Z.parseFingerprint=function(e){let t=e.substring(14).split(" ");return{algorithm:t[0].toLowerCase(),value:t[1].toUpperCase()}},Z.getDtlsParameters=function(e,t){return{role:"auto",fingerprints:Z.matchPrefix(e+t,"a=fingerprint:").map(Z.parseFingerprint)}},Z.writeDtlsParameters=function(e,t){let n="a=setup:"+t+"\r\n";return e.fingerprints.forEach(e=>{n+="a=fingerprint:"+e.algorithm+" "+e.value+"\r\n"}),n},Z.parseCryptoLine=function(e){let t=e.substring(9).split(" ");return{tag:parseInt(t[0],10),cryptoSuite:t[1],keyParams:t[2],sessionParams:t.slice(3)}},Z.writeCryptoLine=function(e){return"a=crypto:"+e.tag+" "+e.cryptoSuite+" "+("object"==typeof e.keyParams?Z.writeCryptoKeyParams(e.keyParams):e.keyParams)+(e.sessionParams?" "+e.sessionParams.join(" "):"")+"\r\n"},Z.parseCryptoKeyParams=function(e){if(0!==e.indexOf("inline:"))return null;let t=e.substring(7).split("|");return{keyMethod:"inline",keySalt:t[0],lifeTime:t[1],mkiValue:t[2]?t[2].split(":")[0]:void 0,mkiLength:t[2]?t[2].split(":")[1]:void 0}},Z.writeCryptoKeyParams=function(e){return e.keyMethod+":"+e.keySalt+(e.lifeTime?"|"+e.lifeTime:"")+(e.mkiValue&&e.mkiLength?"|"+e.mkiValue+":"+e.mkiLength:"")},Z.getCryptoParameters=function(e,t){return Z.matchPrefix(e+t,"a=crypto:").map(Z.parseCryptoLine)},Z.getIceParameters=function(e,t){let n=Z.matchPrefix(e+t,"a=ice-ufrag:")[0],r=Z.matchPrefix(e+t,"a=ice-pwd:")[0];return n&&r?{usernameFragment:n.substring(12),password:r.substring(10)}:null},Z.writeIceParameters=function(e){let t="a=ice-ufrag:"+e.usernameFragment+"\r\na=ice-pwd:"+e.password+"\r\n";return e.iceLite&&(t+="a=ice-lite\r\n"),t},Z.parseRtpParameters=function(e){let t={codecs:[],headerExtensions:[],fecMechanisms:[],rtcp:[]},n=Z.splitLines(e)[0].split(" ");t.profile=n[2];for(let r=3;r<n.length;r++){let i=n[r],s=Z.matchPrefix(e,"a=rtpmap:"+i+" ")[0];if(s){let n=Z.parseRtpMap(s),r=Z.matchPrefix(e,"a=fmtp:"+i+" ");switch(n.parameters=r.length?Z.parseFmtp(r[0]):{},n.rtcpFeedback=Z.matchPrefix(e,"a=rtcp-fb:"+i+" ").map(Z.parseRtcpFb),t.codecs.push(n),n.name.toUpperCase()){case"RED":case"ULPFEC":t.fecMechanisms.push(n.name.toUpperCase())}}}Z.matchPrefix(e,"a=extmap:").forEach(e=>{t.headerExtensions.push(Z.parseExtmap(e))});let r=Z.matchPrefix(e,"a=rtcp-fb:* ").map(Z.parseRtcpFb);return t.codecs.forEach(e=>{r.forEach(t=>{e.rtcpFeedback.find(e=>e.type===t.type&&e.parameter===t.parameter)||e.rtcpFeedback.push(t)})}),t},Z.writeRtpDescription=function(e,t){let n="";n+="m="+e+" ",n+=t.codecs.length>0?"9":"0",n+=" "+(t.profile||"UDP/TLS/RTP/SAVPF")+" ",n+=t.codecs.map(e=>void 0!==e.preferredPayloadType?e.preferredPayloadType:e.payloadType).join(" ")+"\r\n",n+="c=IN IP4 0.0.0.0\r\n",n+="a=rtcp:9 IN IP4 0.0.0.0\r\n",t.codecs.forEach(e=>{n+=Z.writeRtpMap(e),n+=Z.writeFmtp(e),n+=Z.writeRtcpFb(e)});let r=0;return t.codecs.forEach(e=>{e.maxptime>r&&(r=e.maxptime)}),r>0&&(n+="a=maxptime:"+r+"\r\n"),t.headerExtensions&&t.headerExtensions.forEach(e=>{n+=Z.writeExtmap(e)}),n},Z.parseRtpEncodingParameters=function(e){let t,n=[],r=Z.parseRtpParameters(e),i=-1!==r.fecMechanisms.indexOf("RED"),s=-1!==r.fecMechanisms.indexOf("ULPFEC"),o=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"cname"===e.attribute),a=o.length>0&&o[0].ssrc,c=Z.matchPrefix(e,"a=ssrc-group:FID").map(e=>e.substring(17).split(" ").map(e=>parseInt(e,10)));c.length>0&&c[0].length>1&&c[0][0]===a&&(t=c[0][1]),r.codecs.forEach(e=>{if("RTX"===e.name.toUpperCase()&&e.parameters.apt){let r={ssrc:a,codecPayloadType:parseInt(e.parameters.apt,10)};a&&t&&(r.rtx={ssrc:t}),n.push(r),i&&((r=JSON.parse(JSON.stringify(r))).fec={ssrc:a,mechanism:s?"red+ulpfec":"red"},n.push(r))}}),0===n.length&&a&&n.push({ssrc:a});let p=Z.matchPrefix(e,"b=");return p.length&&(p=0===p[0].indexOf("b=TIAS:")?parseInt(p[0].substring(7),10):0===p[0].indexOf("b=AS:")?950*parseInt(p[0].substring(5),10)-16e3:void 0,n.forEach(e=>{e.maxBitrate=p})),n},Z.parseRtcpParameters=function(e){let t={},n=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"cname"===e.attribute)[0];n&&(t.cname=n.value,t.ssrc=n.ssrc);let r=Z.matchPrefix(e,"a=rtcp-rsize");return t.reducedSize=r.length>0,t.compound=0===r.length,t.mux=Z.matchPrefix(e,"a=rtcp-mux").length>0,t},Z.writeRtcpParameters=function(e){let t="";return e.reducedSize&&(t+="a=rtcp-rsize\r\n"),e.mux&&(t+="a=rtcp-mux\r\n"),void 0!==e.ssrc&&e.cname&&(t+="a=ssrc:"+e.ssrc+" cname:"+e.cname+"\r\n"),t},Z.parseMsid=function(e){let t,n=Z.matchPrefix(e,"a=msid:");if(1===n.length)return{stream:(t=n[0].substring(7).split(" "))[0],track:t[1]};let r=Z.matchPrefix(e,"a=ssrc:").map(e=>Z.parseSsrcMedia(e)).filter(e=>"msid"===e.attribute);if(r.length>0)return{stream:(t=r[0].value.split(" "))[0],track:t[1]}},Z.parseSctpDescription=function(e){let t,n=Z.parseMLine(e),r=Z.matchPrefix(e,"a=max-message-size:");r.length>0&&(t=parseInt(r[0].substring(19),10)),isNaN(t)&&(t=65536);let i=Z.matchPrefix(e,"a=sctp-port:");if(i.length>0)return{port:parseInt(i[0].substring(12),10),protocol:n.fmt,maxMessageSize:t};let s=Z.matchPrefix(e,"a=sctpmap:");if(s.length>0){let e=s[0].substring(10).split(" ");return{port:parseInt(e[0],10),protocol:e[1],maxMessageSize:t}}},Z.writeSctpDescription=function(e,t){let n=[];return n="DTLS/SCTP"!==e.protocol?["m="+e.kind+" 9 "+e.protocol+" "+t.protocol+"\r\n","c=IN IP4 0.0.0.0\r\n","a=sctp-port:"+t.port+"\r\n"]:["m="+e.kind+" 9 "+e.protocol+" "+t.port+"\r\n","c=IN IP4 0.0.0.0\r\n","a=sctpmap:"+t.port+" "+t.protocol+" 65535\r\n"],void 0!==t.maxMessageSize&&n.push("a=max-message-size:"+t.maxMessageSize+"\r\n"),n.join("")},Z.generateSessionId=function(){return Math.random().toString().substr(2,22)},Z.writeSessionBoilerplate=function(e,t,n){return"v=0\r\no="+(n||"thisisadapterortc")+" "+(e||Z.generateSessionId())+" "+(void 0!==t?t:2)+" IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n"},Z.getDirection=function(e,t){let n=Z.splitLines(e);for(let e=0;e<n.length;e++)switch(n[e]){case"a=sendrecv":case"a=sendonly":case"a=recvonly":case"a=inactive":return n[e].substring(2)}return t?Z.getDirection(t):"sendrecv"},Z.getKind=function(e){return Z.splitLines(e)[0].split(" ")[0].substring(2)},Z.isRejected=function(e){return"0"===e.split(" ",2)[1]},Z.parseMLine=function(e){let t=Z.splitLines(e)[0].substring(2).split(" ");return{kind:t[0],port:parseInt(t[1],10),protocol:t[2],fmt:t.slice(3).join(" ")}},Z.parseOLine=function(e){let t=Z.matchPrefix(e,"o=")[0].substring(2).split(" ");return{username:t[0],sessionId:t[1],sessionVersion:parseInt(t[2],10),netType:t[3],addressType:t[4],address:t[5]}},Z.isValidSDP=function(e){if("string"!=typeof e||0===e.length)return!1;let t=Z.splitLines(e);for(let e=0;e<t.length;e++)if(t[e].length<2||"="!==t[e].charAt(1))return!1;return!0},q=Z;let ec=function({window:e}={},t={shimChrome:!0,shimFirefox:!0,shimSafari:!0}){let n=function(e){let t={browser:null,version:null};if(void 0===e||!e.navigator||!e.navigator.userAgent)return t.browser="Not a browser.",t;let{navigator:n}=e;if(n.userAgentData&&n.userAgentData.brands){let e=n.userAgentData.brands.find(e=>"Chromium"===e.brand);if(e)return{browser:"chrome",version:parseInt(e.version,10)}}return n.mozGetUserMedia?(t.browser="firefox",t.version=d(n.userAgent,/Firefox\/(\d+)\./,1)):n.webkitGetUserMedia||!1===e.isSecureContext&&e.webkitRTCPeerConnection?(t.browser="chrome",t.version=d(n.userAgent,/Chrom(e|ium)\/(\d+)\./,2)):e.RTCPeerConnection&&n.userAgent.match(/AppleWebKit\/(\d+)\./)?(t.browser="safari",t.version=d(n.userAgent,/AppleWebKit\/(\d+)\./,1),t.supportsUnifiedPlan=e.RTCRtpTransceiver&&"currentDirection"in e.RTCRtpTransceiver.prototype):t.browser="Not a supported browser.",t}(e),r={browserDetails:n,commonShim:Q,extractVersion:d,disableLog:h,disableWarnings:u,sdp:q};switch(n.browser){case"chrome":if(!y||!y.shimPeerConnection||!t.shimChrome){f("Chrome shim is not included in this adapter release.");break}if(null===n.version){f("Chrome shim can not determine version, not shimming.");break}f("adapter.js shimming chrome."),r.browserShim=y,eo(e,n),ea(e,n),y.shimGetUserMedia(e,n),y.shimMediaStream(e,n),y.shimPeerConnection(e,n),y.shimOnTrack(e,n),y.shimAddTrackRemoveTrack(e,n),y.shimGetSendersWithDtmf(e,n),y.shimSenderReceiverGetStats(e,n),y.fixNegotiationNeeded(e,n),ee(e,n),et(e,n),ei(e,n),en(e,n),er(e,n),es(e,n);break;case"firefox":if(!E||!E.shimPeerConnection||!t.shimFirefox){f("Firefox shim is not included in this adapter release.");break}f("adapter.js shimming firefox."),r.browserShim=E,eo(e,n),ea(e,n),E.shimGetUserMedia(e,n),E.shimPeerConnection(e,n),E.shimOnTrack(e,n),E.shimRemoveStream(e,n),E.shimSenderGetStats(e,n),E.shimReceiverGetStats(e,n),E.shimRTCDataChannel(e,n),E.shimAddTransceiver(e,n),E.shimGetParameters(e,n),E.shimCreateOffer(e,n),E.shimCreateAnswer(e,n),ee(e,n),ei(e,n),en(e,n),er(e,n);break;case"safari":if(!z||!t.shimSafari){f("Safari shim is not included in this adapter release.");break}f("adapter.js shimming safari."),r.browserShim=z,eo(e,n),ea(e,n),z.shimRTCIceServerUrls(e,n),z.shimCreateOfferLegacy(e,n),z.shimCallbacksAPI(e,n),z.shimLocalStreamsAPI(e,n),z.shimRemoteStreamsAPI(e,n),z.shimTrackEventTransceiver(e,n),z.shimGetUserMedia(e,n),z.shimAudioContext(e,n),ee(e,n),et(e,n),en(e,n),er(e,n),es(e,n);break;default:f("Unsupported browser!")}return r}({window:"undefined"==typeof window?void 0:window}),ep=ec.default||ec,ed=new class{isWebRTCSupported(){return"undefined"!=typeof RTCPeerConnection}isBrowserSupported(){let e=this.getBrowser(),t=this.getVersion();return!!this.supportedBrowsers.includes(e)&&("chrome"===e?t>=this.minChromeVersion:"firefox"===e?t>=this.minFirefoxVersion:"safari"===e&&!this.isIOS&&t>=this.minSafariVersion)}getBrowser(){return ep.browserDetails.browser}getVersion(){return ep.browserDetails.version||0}isUnifiedPlanSupported(){let e,t=this.getBrowser(),n=ep.browserDetails.version||0;if("chrome"===t&&n<this.minChromeVersion)return!1;if("firefox"===t&&n>=this.minFirefoxVersion)return!0;if(!window.RTCRtpTransceiver||!("currentDirection"in RTCRtpTransceiver.prototype))return!1;let r=!1;try{(e=new RTCPeerConnection).addTransceiver("audio"),r=!0}catch(e){}finally{e&&e.close()}return r}toString(){return`Supports:
+    browser:${this.getBrowser()}
+    version:${this.getVersion()}
+    isIOS:${this.isIOS}
+    isWebRTCSupported:${this.isWebRTCSupported()}
+    isBrowserSupported:${this.isBrowserSupported()}
+    isUnifiedPlanSupported:${this.isUnifiedPlanSupported()}`}constructor(){this.isIOS="undefined"!=typeof navigator&&["iPad","iPhone","iPod"].includes(navigator.platform),this.supportedBrowsers=["firefox","chrome","safari"],this.minFirefoxVersion=59,this.minChromeVersion=72,this.minSafariVersion=605}},el=e=>!e||/^[A-Za-z0-9]+(?:[ _-][A-Za-z0-9]+)*$/.test(e),eh=()=>Math.random().toString(36).slice(2),eu={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:["turn:eu-0.turn.peerjs.com:3478","turn:us-0.turn.peerjs.com:3478"],username:"peerjs",credential:"peerjsp"}],sdpSemantics:"unified-plan"},ef=new class extends n{noop(){}blobToArrayBuffer(e,t){let n=new FileReader;return n.onload=function(e){e.target&&t(e.target.result)},n.readAsArrayBuffer(e),n}binaryStringToArrayBuffer(e){let t=new Uint8Array(e.length);for(let n=0;n<e.length;n++)t[n]=255&e.charCodeAt(n);return t.buffer}isSecure(){return"https:"===location.protocol}constructor(...e){super(...e),this.CLOUD_HOST="0.peerjs.com",this.CLOUD_PORT=443,this.chunkedBrowsers={Chrome:1,chrome:1},this.defaultConfig=eu,this.browser=ed.getBrowser(),this.browserVersion=ed.getVersion(),this.pack=s,this.unpack=i,this.supports=function(){let e,t={browser:ed.isBrowserSupported(),webRTC:ed.isWebRTCSupported(),audioVideo:!1,data:!1,binaryBlob:!1,reliable:!1};if(!t.webRTC)return t;try{let n;e=new RTCPeerConnection(eu),t.audioVideo=!0;try{n=e.createDataChannel("_PEERJSTEST",{ordered:!0}),t.data=!0,t.reliable=!!n.ordered;try{n.binaryType="blob",t.binaryBlob=!ed.isIOS}catch(e){}}catch(e){}finally{n&&n.close()}}catch(e){}finally{e&&e.close()}return t}(),this.validateId=el,this.randomToken=eh}};"use strict";var em=new class{get logLevel(){return this._logLevel}set logLevel(e){this._logLevel=e}log(...e){this._logLevel>=3&&this._print(3,...e)}warn(...e){this._logLevel>=2&&this._print(2,...e)}error(...e){this._logLevel>=1&&this._print(1,...e)}setLogFunction(e){this._print=e}_print(e,...t){let n=["PeerJS: ",...t];for(let e in n)n[e]instanceof Error&&(n[e]="("+n[e].name+") "+n[e].message);e>=3?console.log(...n):e>=2?console.warn("WARNING",...n):e>=1&&console.error("ERROR",...n)}constructor(){this._logLevel=0}},e_={},eg=Object.prototype.hasOwnProperty,ey="~";function eC(){}function ev(e,t,n){this.fn=e,this.context=t,this.once=n||!1}function eb(e,t,n,r,i){if("function"!=typeof n)throw TypeError("The listener must be a function");var s=new ev(n,r||e,i),o=ey?ey+t:t;return e._events[o]?e._events[o].fn?e._events[o]=[e._events[o],s]:e._events[o].push(s):(e._events[o]=s,e._eventsCount++),e}function eT(e,t){0==--e._eventsCount?e._events=new eC:delete e._events[t]}function eS(){this._events=new eC,this._eventsCount=0}Object.create&&(eC.prototype=Object.create(null),new eC().__proto__||(ey=!1)),eS.prototype.eventNames=function(){var e,t,n=[];if(0===this._eventsCount)return n;for(t in e=this._events)eg.call(e,t)&&n.push(ey?t.slice(1):t);return Object.getOwnPropertySymbols?n.concat(Object.getOwnPropertySymbols(e)):n},eS.prototype.listeners=function(e){var t=ey?ey+e:e,n=this._events[t];if(!n)return[];if(n.fn)return[n.fn];for(var r=0,i=n.length,s=Array(i);r<i;r++)s[r]=n[r].fn;return s},eS.prototype.listenerCount=function(e){var t=ey?ey+e:e,n=this._events[t];return n?n.fn?1:n.length:0},eS.prototype.emit=function(e,t,n,r,i,s){var o=ey?ey+e:e;if(!this._events[o])return!1;var a,c,p=this._events[o],d=arguments.length;if(p.fn){switch(p.once&&this.removeListener(e,p.fn,void 0,!0),d){case 1:return p.fn.call(p.context),!0;case 2:return p.fn.call(p.context,t),!0;case 3:return p.fn.call(p.context,t,n),!0;case 4:return p.fn.call(p.context,t,n,r),!0;case 5:return p.fn.call(p.context,t,n,r,i),!0;case 6:return p.fn.call(p.context,t,n,r,i,s),!0}for(c=1,a=Array(d-1);c<d;c++)a[c-1]=arguments[c];p.fn.apply(p.context,a)}else{var l,h=p.length;for(c=0;c<h;c++)switch(p[c].once&&this.removeListener(e,p[c].fn,void 0,!0),d){case 1:p[c].fn.call(p[c].context);break;case 2:p[c].fn.call(p[c].context,t);break;case 3:p[c].fn.call(p[c].context,t,n);break;case 4:p[c].fn.call(p[c].context,t,n,r);break;default:if(!a)for(l=1,a=Array(d-1);l<d;l++)a[l-1]=arguments[l];p[c].fn.apply(p[c].context,a)}}return!0},eS.prototype.on=function(e,t,n){return eb(this,e,t,n,!1)},eS.prototype.once=function(e,t,n){return eb(this,e,t,n,!0)},eS.prototype.removeListener=function(e,t,n,r){var i=ey?ey+e:e;if(!this._events[i])return this;if(!t)return eT(this,i),this;var s=this._events[i];if(s.fn)s.fn!==t||r&&!s.once||n&&s.context!==n||eT(this,i);else{for(var o=0,a=[],c=s.length;o<c;o++)(s[o].fn!==t||r&&!s[o].once||n&&s[o].context!==n)&&a.push(s[o]);a.length?this._events[i]=1===a.length?a[0]:a:eT(this,i)}return this},eS.prototype.removeAllListeners=function(e){var t;return e?(t=ey?ey+e:e,this._events[t]&&eT(this,t)):(this._events=new eC,this._eventsCount=0),this},eS.prototype.off=eS.prototype.removeListener,eS.prototype.addListener=eS.prototype.on,eS.prefixed=ey,eS.EventEmitter=eS,e_=eS;var ek=function(e){return e.Data="data",e.Media="media",e}({}),eR=function(e){return e.BrowserIncompatible="browser-incompatible",e.Disconnected="disconnected",e.InvalidID="invalid-id",e.InvalidKey="invalid-key",e.Network="network",e.PeerUnavailable="peer-unavailable",e.SslUnavailable="ssl-unavailable",e.ServerError="server-error",e.SocketError="socket-error",e.SocketClosed="socket-closed",e.UnavailableID="unavailable-id",e.WebRTC="webrtc",e}({}),eP=function(e){return e.NegotiationFailed="negotiation-failed",e.ConnectionClosed="connection-closed",e}({}),ew=function(e){return e.NotOpenYet="not-open-yet",e.MessageToBig="message-too-big",e}({}),eE=function(e){return e.Binary="binary",e.BinaryUTF8="binary-utf8",e.JSON="json",e.None="raw",e}({}),ex=function(e){return e.Message="message",e.Disconnected="disconnected",e.Error="error",e.Close="close",e}({}),eD=function(e){return e.Heartbeat="HEARTBEAT",e.Candidate="CANDIDATE",e.Offer="OFFER",e.Answer="ANSWER",e.Open="OPEN",e.Error="ERROR",e.IdTaken="ID-TAKEN",e.InvalidKey="INVALID-KEY",e.Leave="LEAVE",e.Expire="EXPIRE",e}({});let eI="1.5.5";class eM extends e_.EventEmitter{start(e,t){this._id=e;let n=`${this._baseUrl}&id=${e}&token=${t}`;!this._socket&&this._disconnected&&(this._socket=new WebSocket(n+"&version="+eI),this._disconnected=!1,this._socket.onmessage=e=>{let t;try{t=JSON.parse(e.data),em.log("Server message received:",t)}catch(t){em.log("Invalid server message",e.data);return}this.emit(ex.Message,t)},this._socket.onclose=e=>{this._disconnected||(em.log("Socket closed.",e),this._cleanup(),this._disconnected=!0,this.emit(ex.Disconnected))},this._socket.onopen=()=>{this._disconnected||(this._sendQueuedMessages(),em.log("Socket open"),this._scheduleHeartbeat())})}_scheduleHeartbeat(){this._wsPingTimer=setTimeout(()=>{this._sendHeartbeat()},this.pingInterval)}_sendHeartbeat(){if(!this._wsOpen())return void em.log("Cannot send heartbeat, because socket closed");let e=JSON.stringify({type:eD.Heartbeat});this._socket.send(e),this._scheduleHeartbeat()}_wsOpen(){return!!this._socket&&1===this._socket.readyState}_sendQueuedMessages(){let e=[...this._messagesQueue];for(let t of(this._messagesQueue=[],e))this.send(t)}send(e){if(this._disconnected)return;if(!this._id)return void this._messagesQueue.push(e);if(!e.type)return void this.emit(ex.Error,"Invalid message");if(!this._wsOpen())return;let t=JSON.stringify(e);this._socket.send(t)}close(){this._disconnected||(this._cleanup(),this._disconnected=!0)}_cleanup(){this._socket&&(this._socket.onopen=this._socket.onmessage=this._socket.onclose=null,this._socket.close(),this._socket=void 0),clearTimeout(this._wsPingTimer)}constructor(e,t,n,r,i,s=5e3){super(),this.pingInterval=s,this._disconnected=!0,this._messagesQueue=[],this._baseUrl=(e?"wss://":"ws://")+t+":"+n+r+"peerjs?key="+i}}class eO{startConnection(e){let t=this._startPeerConnection();if(this.connection.peerConnection=t,this.connection.type===ek.Media&&e._stream&&this._addTracksToConnection(e._stream,t),e.originator){let n=this.connection,r={ordered:!!e.reliable},i=t.createDataChannel(n.label,r);n._initializeDataChannel(i),this._makeOffer()}else this.handleSDP("OFFER",e.sdp)}_startPeerConnection(){em.log("Creating RTCPeerConnection.");let e=new RTCPeerConnection(this.connection.provider.options.config);return this._setupListeners(e),e}_setupListeners(e){let t=this.connection.peer,n=this.connection.connectionId,r=this.connection.type,i=this.connection.provider;em.log("Listening for ICE candidates."),e.onicecandidate=e=>{e.candidate&&e.candidate.candidate&&(em.log(`Received ICE candidates for ${t}:`,e.candidate),i.socket.send({type:eD.Candidate,payload:{candidate:e.candidate,type:r,connectionId:n},dst:t}))},e.oniceconnectionstatechange=()=>{switch(e.iceConnectionState){case"failed":em.log("iceConnectionState is failed, closing connections to "+t),this.connection.emitError(eP.NegotiationFailed,"Negotiation of connection to "+t+" failed."),this.connection.close();break;case"closed":em.log("iceConnectionState is closed, closing connections to "+t),this.connection.emitError(eP.ConnectionClosed,"Connection to "+t+" closed."),this.connection.close();break;case"disconnected":em.log("iceConnectionState changed to disconnected on the connection with "+t);break;case"completed":e.onicecandidate=()=>{}}this.connection.emit("iceStateChanged",e.iceConnectionState)},em.log("Listening for data channel"),e.ondatachannel=e=>{em.log("Received data channel");let r=e.channel;i.getConnection(t,n)._initializeDataChannel(r)},em.log("Listening for remote stream"),e.ontrack=e=>{em.log("Received remote stream");let r=e.streams[0],s=i.getConnection(t,n);s.type===ek.Media&&this._addStreamToMediaConnection(r,s)}}cleanup(){em.log("Cleaning up PeerConnection to "+this.connection.peer);let e=this.connection.peerConnection;if(!e)return;this.connection.peerConnection=null,e.onicecandidate=e.oniceconnectionstatechange=e.ondatachannel=e.ontrack=()=>{};let t="closed"!==e.signalingState,n=!1,r=this.connection.dataChannel;r&&(n=!!r.readyState&&"closed"!==r.readyState),(t||n)&&e.close()}async _makeOffer(){let e=this.connection.peerConnection,t=this.connection.provider;try{let n=await e.createOffer(this.connection.options.constraints);em.log("Created offer."),this.connection.options.sdpTransform&&"function"==typeof this.connection.options.sdpTransform&&(n.sdp=this.connection.options.sdpTransform(n.sdp)||n.sdp);try{await e.setLocalDescription(n),em.log("Set localDescription:",n,`for:${this.connection.peer}`);let r={sdp:n,type:this.connection.type,connectionId:this.connection.connectionId,metadata:this.connection.metadata};if(this.connection.type===ek.Data){let e=this.connection;r={...r,label:e.label,reliable:e.reliable,serialization:e.serialization}}t.socket.send({type:eD.Offer,payload:r,dst:this.connection.peer})}catch(e){"OperationError: Failed to set local offer sdp: Called in wrong state: kHaveRemoteOffer"!=e&&(t.emitError(eR.WebRTC,e),em.log("Failed to setLocalDescription, ",e))}}catch(e){t.emitError(eR.WebRTC,e),em.log("Failed to createOffer, ",e)}}async _makeAnswer(){let e=this.connection.peerConnection,t=this.connection.provider;try{let n=await e.createAnswer();em.log("Created answer."),this.connection.options.sdpTransform&&"function"==typeof this.connection.options.sdpTransform&&(n.sdp=this.connection.options.sdpTransform(n.sdp)||n.sdp);try{await e.setLocalDescription(n),em.log("Set localDescription:",n,`for:${this.connection.peer}`),t.socket.send({type:eD.Answer,payload:{sdp:n,type:this.connection.type,connectionId:this.connection.connectionId},dst:this.connection.peer})}catch(e){t.emitError(eR.WebRTC,e),em.log("Failed to setLocalDescription, ",e)}}catch(e){t.emitError(eR.WebRTC,e),em.log("Failed to create answer, ",e)}}async handleSDP(e,t){t=new RTCSessionDescription(t);let n=this.connection.peerConnection,r=this.connection.provider;em.log("Setting remote description",t);try{await n.setRemoteDescription(t),em.log(`Set remoteDescription:${e} for:${this.connection.peer}`),"OFFER"===e&&await this._makeAnswer()}catch(e){r.emitError(eR.WebRTC,e),em.log("Failed to setRemoteDescription, ",e)}}async handleCandidate(e){em.log("handleCandidate:",e);try{await this.connection.peerConnection.addIceCandidate(e),em.log(`Added ICE candidate for:${this.connection.peer}`)}catch(e){this.connection.provider.emitError(eR.WebRTC,e),em.log("Failed to handleCandidate, ",e)}}_addTracksToConnection(e,t){if(em.log(`add tracks from stream ${e.id} to peer connection`),!t.addTrack)return em.error("Your browser does't support RTCPeerConnection#addTrack. Ignored.");e.getTracks().forEach(n=>{t.addTrack(n,e)})}_addStreamToMediaConnection(e,t){em.log(`add stream ${e.id} to media connection ${t.connectionId}`),t.addStream(e)}constructor(e){this.connection=e}}class eL extends e_.EventEmitter{emitError(e,t){em.error("Error:",t),this.emit("error",new eA(`${e}`,t))}}class eA extends Error{constructor(e,t){"string"==typeof t?super(t):(super(),Object.assign(this,t)),this.type=e}}class ej extends eL{get open(){return this._open}constructor(e,t,n){super(),this.peer=e,this.provider=t,this.options=n,this._open=!1,this.metadata=n.metadata}}class eB extends ej{get type(){return ek.Media}get localStream(){return this._localStream}get remoteStream(){return this._remoteStream}_initializeDataChannel(e){this.dataChannel=e,this.dataChannel.onopen=()=>{em.log(`DC#${this.connectionId} dc connection success`),this.emit("willCloseOnRemote")},this.dataChannel.onclose=()=>{em.log(`DC#${this.connectionId} dc closed for:`,this.peer),this.close()}}addStream(e){em.log("Receiving stream",e),this._remoteStream=e,super.emit("stream",e)}handleMessage(e){let t=e.type,n=e.payload;switch(e.type){case eD.Answer:this._negotiator.handleSDP(t,n.sdp),this._open=!0;break;case eD.Candidate:this._negotiator.handleCandidate(n.candidate);break;default:em.warn(`Unrecognized message type:${t} from peer:${this.peer}`)}}answer(e,t={}){if(this._localStream)return void em.warn("Local stream already exists on this MediaConnection. Are you answering a call twice?");for(let n of(this._localStream=e,t&&t.sdpTransform&&(this.options.sdpTransform=t.sdpTransform),this._negotiator.startConnection({...this.options._payload,_stream:e}),this.provider._getMessages(this.connectionId)))this.handleMessage(n);this._open=!0}close(){this._negotiator&&(this._negotiator.cleanup(),this._negotiator=null),this._localStream=null,this._remoteStream=null,this.provider&&(this.provider._removeConnection(this),this.provider=null),this.options&&this.options._stream&&(this.options._stream=null),this.open&&(this._open=!1,super.emit("close"))}constructor(e,t,n){super(e,t,n),this._localStream=this.options._stream,this.connectionId=this.options.connectionId||eB.ID_PREFIX+ef.randomToken(),this._negotiator=new eO(this),this._localStream&&this._negotiator.startConnection({_stream:this._localStream,originator:!0})}}eB.ID_PREFIX="mc_";class eU{_buildRequest(e){let t=this._options.secure?"https":"http",{host:n,port:r,path:i,key:s}=this._options,o=new URL(`${t}://${n}:${r}${i}${s}/${e}`);return o.searchParams.set("ts",`${Date.now()}${Math.random()}`),o.searchParams.set("version",eI),fetch(o.href,{referrerPolicy:this._options.referrerPolicy})}async retrieveId(){try{let e=await this._buildRequest("id");if(200!==e.status)throw Error(`Error. Status:${e.status}`);return e.text()}catch(t){em.error("Error retrieving ID",t);let e="";throw"/"===this._options.path&&this._options.host!==ef.CLOUD_HOST&&(e=" If you passed in a `path` to your self-hosted PeerServer, you'll also need to pass in that same path when creating a new Peer."),Error("Could not get an ID from the server."+e)}}async listAllPeers(){try{let e=await this._buildRequest("peers");if(200!==e.status){if(401===e.status){let e="";throw e=this._options.host===ef.CLOUD_HOST?"It looks like you're using the cloud server. You can email team@peerjs.com to enable peer listing for your API key.":"You need to enable `allow_discovery` on your self-hosted PeerServer to use this feature.",Error("It doesn't look like you have permission to list peers IDs. "+e)}throw Error(`Error. Status:${e.status}`)}return e.json()}catch(e){throw em.error("Error retrieving list peers",e),Error("Could not get list peers from the server."+e)}}constructor(e){this._options=e}}class eF extends ej{get type(){return ek.Data}_initializeDataChannel(e){this.dataChannel=e,this.dataChannel.onopen=()=>{em.log(`DC#${this.connectionId} dc connection success`),this._open=!0,this.emit("open")},this.dataChannel.onmessage=e=>{em.log(`DC#${this.connectionId} dc onmessage:`,e.data)},this.dataChannel.onclose=()=>{em.log(`DC#${this.connectionId} dc closed for:`,this.peer),this.close()}}close(e){if(e?.flush)return void this.send({__peerData:{type:"close"}});this._negotiator&&(this._negotiator.cleanup(),this._negotiator=null),this.provider&&(this.provider._removeConnection(this),this.provider=null),this.dataChannel&&(this.dataChannel.onopen=null,this.dataChannel.onmessage=null,this.dataChannel.onclose=null,this.dataChannel=null),this.open&&(this._open=!1,super.emit("close"))}send(e,t=!1){return this.open?this._send(e,t):void this.emitError(ew.NotOpenYet,"Connection is not open. You should listen for the `open` event before sending messages.")}async handleMessage(e){let t=e.payload;switch(e.type){case eD.Answer:await this._negotiator.handleSDP(e.type,t.sdp);break;case eD.Candidate:await this._negotiator.handleCandidate(t.candidate);break;default:em.warn("Unrecognized message type:",e.type,"from peer:",this.peer)}}constructor(e,t,n){super(e,t,n),this.connectionId=this.options.connectionId||eF.ID_PREFIX+eh(),this.label=this.options.label||this.connectionId,this.reliable=!!this.options.reliable,this._negotiator=new eO(this),this._negotiator.startConnection(this.options._payload||{originator:!0,reliable:this.reliable})}}eF.ID_PREFIX="dc_",eF.MAX_BUFFERED_AMOUNT=8388608;class eN extends eF{get bufferSize(){return this._bufferSize}_initializeDataChannel(e){super._initializeDataChannel(e),this.dataChannel.binaryType="arraybuffer",this.dataChannel.addEventListener("message",e=>this._handleDataMessage(e))}_bufferedSend(e){(this._buffering||!this._trySend(e))&&(this._buffer.push(e),this._bufferSize=this._buffer.length)}_trySend(e){if(!this.open)return!1;if(this.dataChannel.bufferedAmount>eF.MAX_BUFFERED_AMOUNT)return this._buffering=!0,setTimeout(()=>{this._buffering=!1,this._tryBuffer()},50),!1;try{this.dataChannel.send(e)}catch(e){return em.error(`DC#:${this.connectionId} Error when sending:`,e),this._buffering=!0,this.close(),!1}return!0}_tryBuffer(){if(!this.open||0===this._buffer.length)return;let e=this._buffer[0];this._trySend(e)&&(this._buffer.shift(),this._bufferSize=this._buffer.length,this._tryBuffer())}close(e){if(e?.flush)return void this.send({__peerData:{type:"close"}});this._buffer=[],this._bufferSize=0,super.close()}constructor(...e){super(...e),this._buffer=[],this._bufferSize=0,this._buffering=!1}}class ez extends eN{close(e){super.close(e),this._chunkedData={}}_handleDataMessage({data:e}){let t=i(e),n=t.__peerData;if(n)return"close"===n.type?void this.close():void this._handleChunk(t);this.emit("data",t)}_handleChunk(e){let t=e.__peerData,n=this._chunkedData[t]||{data:[],count:0,total:e.total};if(n.data[e.n]=new Uint8Array(e.data),n.count++,this._chunkedData[t]=n,n.total===n.count){delete this._chunkedData[t];let e=function(e){let t=0;for(let n of e)t+=n.byteLength;let n=new Uint8Array(t),r=0;for(let t of e)n.set(t,r),r+=t.byteLength;return n}(n.data);this._handleDataMessage({data:e})}}_send(e,t){let n=s(e);return n instanceof Promise?this._send_blob(n):!t&&n.byteLength>this.chunker.chunkedMTU?void this._sendChunks(n):void this._bufferedSend(n)}async _send_blob(e){let t=await e;if(t.byteLength>this.chunker.chunkedMTU)return void this._sendChunks(t);this._bufferedSend(t)}_sendChunks(e){let t=this.chunker.chunk(e);for(let e of(em.log(`DC#${this.connectionId} Try to send ${t.length} chunks...`),t))this.send(e,!0)}constructor(e,t,r){super(e,t,r),this.chunker=new n,this.serialization=eE.Binary,this._chunkedData={}}}class e$ extends eN{_handleDataMessage({data:e}){super.emit("data",e)}_send(e,t){this._bufferedSend(e)}constructor(...e){super(...e),this.serialization=eE.None}}class eV extends eN{_handleDataMessage({data:e}){let t=this.parse(this.decoder.decode(e)),n=t.__peerData;if(n&&"close"===n.type)return void this.close();this.emit("data",t)}_send(e,t){let n=this.encoder.encode(this.stringify(e));if(n.byteLength>=ef.chunkedMTU)return void this.emitError(ew.MessageToBig,"Message too big for JSON channel");this._bufferedSend(n)}constructor(...e){super(...e),this.serialization=eE.JSON,this.encoder=new TextEncoder,this.decoder=new TextDecoder,this.stringify=JSON.stringify,this.parse=JSON.parse}}class eG extends eL{get id(){return this._id}get options(){return this._options}get open(){return this._open}get socket(){return this._socket}get connections(){let e=Object.create(null);for(let[t,n]of this._connections)e[t]=n;return e}get destroyed(){return this._destroyed}get disconnected(){return this._disconnected}_createServerConnection(){let e=new eM(this._options.secure,this._options.host,this._options.port,this._options.path,this._options.key,this._options.pingInterval);return e.on(ex.Message,e=>{this._handleMessage(e)}),e.on(ex.Error,e=>{this._abort(eR.SocketError,e)}),e.on(ex.Disconnected,()=>{this.disconnected||(this.emitError(eR.Network,"Lost connection to server."),this.disconnect())}),e.on(ex.Close,()=>{this.disconnected||this._abort(eR.SocketClosed,"Underlying socket is already closed.")}),e}_initialize(e){this._id=e,this.socket.start(e,this._options.token)}_handleMessage(e){let t=e.type,n=e.payload,r=e.src;switch(t){case eD.Open:this._lastServerId=this.id,this._open=!0,this.emit("open",this.id);break;case eD.Error:this._abort(eR.ServerError,n.msg);break;case eD.IdTaken:this._abort(eR.UnavailableID,`ID "${this.id}" is taken`);break;case eD.InvalidKey:this._abort(eR.InvalidKey,`API KEY "${this._options.key}" is invalid`);break;case eD.Leave:em.log(`Received leave message from ${r}`),this._cleanupPeer(r),this._connections.delete(r);break;case eD.Expire:this.emitError(eR.PeerUnavailable,`Could not connect to peer ${r}`);break;case eD.Offer:{let e=n.connectionId,t=this.getConnection(r,e);if(t&&(t.close(),em.warn(`Offer received for existing Connection ID:${e}`)),n.type===ek.Media){let i=new eB(r,this,{connectionId:e,_payload:n,metadata:n.metadata});t=i,this._addConnection(r,t),this.emit("call",i)}else{if(n.type!==ek.Data)return void em.warn(`Received malformed connection type:${n.type}`);let i=new this._serializers[n.serialization](r,this,{connectionId:e,_payload:n,metadata:n.metadata,label:n.label,serialization:n.serialization,reliable:n.reliable});t=i,this._addConnection(r,t),this.emit("connection",i)}for(let n of this._getMessages(e))t.handleMessage(n);break}default:{if(!n)return void em.warn(`You received a malformed message from ${r} of type ${t}`);let i=n.connectionId,s=this.getConnection(r,i);s&&s.peerConnection?s.handleMessage(e):i?this._storeMessage(i,e):em.warn("You received an unrecognized message:",e)}}}_storeMessage(e,t){this._lostMessages.has(e)||this._lostMessages.set(e,[]),this._lostMessages.get(e).push(t)}_getMessages(e){let t=this._lostMessages.get(e);return t?(this._lostMessages.delete(e),t):[]}connect(e,t={}){if(t={serialization:"default",...t},this.disconnected){em.warn("You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect, or call reconnect on this peer if you believe its ID to still be available."),this.emitError(eR.Disconnected,"Cannot connect to new Peer after disconnecting from server.");return}let n=new this._serializers[t.serialization](e,this,t);return this._addConnection(e,n),n}call(e,t,n={}){if(this.disconnected){em.warn("You cannot connect to a new Peer because you called .disconnect() on this Peer and ended your connection with the server. You can create a new Peer to reconnect."),this.emitError(eR.Disconnected,"Cannot connect to new Peer after disconnecting from server.");return}if(!t)return void em.error("To call a peer, you must provide a stream from your browser's `getUserMedia`.");let r=new eB(e,this,{...n,_stream:t});return this._addConnection(e,r),r}_addConnection(e,t){em.log(`add connection ${t.type}:${t.connectionId} to peerId:${e}`),this._connections.has(e)||this._connections.set(e,[]),this._connections.get(e).push(t)}_removeConnection(e){let t=this._connections.get(e.peer);if(t){let n=t.indexOf(e);-1!==n&&t.splice(n,1)}this._lostMessages.delete(e.connectionId)}getConnection(e,t){let n=this._connections.get(e);if(!n)return null;for(let e of n)if(e.connectionId===t)return e;return null}_delayedAbort(e,t){setTimeout(()=>{this._abort(e,t)},0)}_abort(e,t){em.error("Aborting!"),this.emitError(e,t),this._lastServerId?this.disconnect():this.destroy()}destroy(){this.destroyed||(em.log(`Destroy peer with ID:${this.id}`),this.disconnect(),this._cleanup(),this._destroyed=!0,this.emit("close"))}_cleanup(){for(let e of this._connections.keys())this._cleanupPeer(e),this._connections.delete(e);this.socket.removeAllListeners()}_cleanupPeer(e){let t=this._connections.get(e);if(t)for(let e of t)e.close()}disconnect(){if(this.disconnected)return;let e=this.id;em.log(`Disconnect peer with ID:${e}`),this._disconnected=!0,this._open=!1,this.socket.close(),this._lastServerId=e,this._id=null,this.emit("disconnected",e)}reconnect(){if(this.disconnected&&!this.destroyed)em.log(`Attempting reconnection to server with ID ${this._lastServerId}`),this._disconnected=!1,this._initialize(this._lastServerId);else if(this.destroyed)throw Error("This peer cannot reconnect to the server. It has already been destroyed.");else if(this.disconnected||this.open)throw Error(`Peer ${this.id} cannot reconnect because it is not disconnected from the server!`);else em.error("In a hurry? We're still trying to make the initial connection!")}listAllPeers(e=e=>{}){this._api.listAllPeers().then(t=>e(t)).catch(e=>this._abort(eR.ServerError,e))}constructor(e,t){let n;if(super(),this._serializers={raw:e$,json:eV,binary:ez,"binary-utf8":ez,default:ez},this._id=null,this._lastServerId=null,this._destroyed=!1,this._disconnected=!1,this._open=!1,this._connections=new Map,this._lostMessages=new Map,e&&e.constructor==Object?t=e:e&&(n=e.toString()),t={debug:0,host:ef.CLOUD_HOST,port:ef.CLOUD_PORT,path:"/",key:eG.DEFAULT_KEY,token:ef.randomToken(),config:ef.defaultConfig,referrerPolicy:"strict-origin-when-cross-origin",serializers:{},...t},this._options=t,this._serializers={...this._serializers,...this.options.serializers},"/"===this._options.host&&(this._options.host=window.location.hostname),this._options.path&&("/"!==this._options.path[0]&&(this._options.path="/"+this._options.path),"/"!==this._options.path[this._options.path.length-1]&&(this._options.path+="/")),void 0===this._options.secure&&this._options.host!==ef.CLOUD_HOST?this._options.secure=ef.isSecure():this._options.host==ef.CLOUD_HOST&&(this._options.secure=!0),this._options.logFunction&&em.setLogFunction(this._options.logFunction),em.logLevel=this._options.debug||0,this._api=new eU(t),this._socket=this._createServerConnection(),!ef.supports.audioVideo&&!ef.supports.data)return void this._delayedAbort(eR.BrowserIncompatible,"The current browser does not support WebRTC");if(n&&!ef.validateId(n))return void this._delayedAbort(eR.InvalidID,`ID "${n}" is invalid`);n?this._initialize(n):this._api.retrieveId().then(e=>this._initialize(e)).catch(e=>this._abort(eR.ServerError,e))}}eG.DEFAULT_KEY="peerjs",window.peerjs={Peer:eG,util:ef},window.Peer=eG})();
+</script>
+<script>
+"use strict";
+/* ============================================================
+   雙龍巷戰 DRAGON ALLEY — original belt-scroll beat-'em-up
+   Single-file, vanilla JS, Canvas 2D. Deterministic fixed-step
+   sim (60 Hz) with seeded PRNG — lockstep-ready architecture.
+   ============================================================ */
+
+// ---------- deterministic PRNG (mulberry32) ----------
+function RNG(seed){ this.s = seed >>> 0; }
+RNG.prototype.next = function(){
+  this.s = (this.s + 0x6D2B79F5) >>> 0;
+  var t = this.s;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+RNG.prototype.range = function(a,b){ return a + this.next()*(b-a); };
+RNG.prototype.int = function(a,b){ return a + Math.floor(this.next()*(b-a+1)); };
+RNG.prototype.chance = function(p){ return this.next() < p; };
+
+// ---------- constants ----------
+var W = 480, H = 270;
+var BELT_TOP = 178, BELT_BOT = 252;            // walkable depth band (world y = ground line)
+var WORLD_LEN = 2600;                          // total stage length (px)
+var GRAV = 1500, JUMP_V = 560;
+var STEP = 1/60;
+
+// input state: produced by keyboard/touch, consumed by sim.
+// punchP/kickP/jumpP are DERIVED each sim step from edgeBuf (see simStep):
+// a fresh press arms a buffer of BUF_TICKS steps; the sim consumes it once.
+// This keeps presses from being dropped during hitstop / attack / dash.
+var input = { up:false, down:false, left:false, right:false,
+              punch:false, kick:false, jump:false,
+              punchP:false, kickP:false, jumpP:false, startP:false };
+var prevInput = { punch:false, kick:false, jump:false, start:false,
+                  left:false, right:false, up:false, down:false };
+var BUF_TICKS = 18;   // ~0.3 s at 60 Hz
+var edgeBuf = { punch: 0, kick: 0, jump: 0 };
+function pressEdge(kind){ edgeBuf[kind] = BUF_TICKS; }
+
+// ---------- online play (v4) ----------
+// Lockstep over a message transport (PeerJS cloud by default; a
+// BroadcastChannel loopback when the URL has ?nettest=1, for testing).
+// INPUT_DELAY: a local input sampled now is stamped for tick now+DELAY, so
+// both peers have time to hold both records before stepping that tick.
+var INPUT_DELAY = 3;
+// Query flags, read defensively: the node test harness loads this script
+// with no location object, and local modes must never depend on them.
+var QS_NETTEST = false, QS_ROLE = "";
+try {
+  if (typeof location !== "undefined" && location.search){
+    QS_NETTEST = /[?&]nettest=1(&|$)/.test(location.search);
+    var qsRoleM = /[?&]role=(host|guest)/.exec(location.search);
+    if (qsRoleM) QS_ROLE = qsRoleM[1];
+  }
+} catch(e){}
+
+// ---------- audio (WebAudio synth, starts on first gesture) ----------
+var AC = null, muted = false, bgmOn = false, bgmStep = 0, bgmNext = 0;
+function audioInit(){
+  if (AC) { if (AC.state === "suspended") AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    bgmOn = true; bgmNext = AC.currentTime + 0.1;
+  } catch(e){ AC = null; }
+}
+function beep(freq, dur, type, vol, slideTo){
+  if (!AC || muted) return;
+  var t = AC.currentTime;
+  var o = AC.createOscillator(), g = AC.createGain();
+  o.type = type || "square"; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo), t + dur);
+  g.gain.setValueAtTime(vol || 0.12, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function noiseBurst(dur, vol, freq){
+  if (!AC || muted) return;
+  var t = AC.currentTime;
+  var len = Math.max(1, Math.floor(AC.sampleRate * dur));
+  var buf = AC.createBuffer(1, len, AC.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i=0;i<len;i++) d[i] = (Math.sin(i*12.9898)*43758.5453 % 1) * (1 - i/len);
+  var src = AC.createBufferSource(); src.buffer = buf;
+  var f = AC.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = freq || 1200; f.Q.value = 0.8;
+  var g = AC.createGain(); g.gain.value = vol || 0.2;
+  src.connect(f); f.connect(g); g.connect(AC.destination);
+  src.start(t);
+}
+var SFX = {
+  swing:  function(){ noiseBurst(0.07, 0.10, 2400); },
+  punch:  function(){ noiseBurst(0.09, 0.28, 700); beep(140, 0.08, "square", 0.15, 60); },
+  kick:   function(){ noiseBurst(0.10, 0.30, 500); beep(110, 0.10, "square", 0.16, 50); },
+  hurt:   function(){ beep(220, 0.10, "sawtooth", 0.12, 110); },
+  down:   function(){ noiseBurst(0.16, 0.30, 300); beep(90, 0.16, "square", 0.18, 40); },
+  pickup: function(){ beep(660, 0.07, "square", 0.12); setTimeout(function(){ beep(990, 0.09, "square", 0.12); }, 60); },
+  crack:  function(){ noiseBurst(0.06, 0.30, 3200); beep(1800, 0.05, "square", 0.08, 900); },
+  go:     function(){ beep(523,0.09,"square",0.12); setTimeout(function(){beep(784,0.12,"square",0.12);},90); },
+  clear:  function(){ var n=[523,659,784,1047]; for (var i=0;i<4;i++)(function(i){ setTimeout(function(){ beep(n[i],0.16,"square",0.13); }, i*120); })(i); },
+  over:   function(){ var n=[392,330,262,196]; for (var i=0;i<4;i++)(function(i){ setTimeout(function(){ beep(n[i],0.2,"triangle",0.14); }, i*160); })(i); }
+};
+var BASS = [55,0,55,0, 65.4,0,55,0, 49,0,49,0, 73.4,0,82.4,0];
+var LEAD = [220,0,262,220, 0,196,0,0, 175,0,196,175, 0,165,0,0,
+            220,0,262,220, 0,294,262,0, 247,0,220,0, 196,0,0,0];
+function bgmTick(){
+  if (!AC || muted || !bgmOn) return;
+  var now = AC.currentTime;
+  while (bgmNext < now + 0.12){
+    var s = bgmStep % 32, dt = Math.max(0, bgmNext - now);
+    (function(step, delay){
+      setTimeout(function(){
+        if (!AC || muted) return;
+        var b = BASS[step % 16]; if (b) beep(b, 0.14, "triangle", 0.16);
+        var l = LEAD[step]; if (l) beep(l, 0.11, "square", 0.05);
+      }, delay*1000);
+    })(s, dt);
+    bgmStep++; bgmNext += 0.135;
+  }
+}
+
+// ---------- characters ----------
+var HEROES = {
+  ahLong: { name: "阿龍", kind: "hero",  speedMul: 1.00, dmgMul: 1.00, comboMul: 1.00 },
+  ahFu:   { name: "阿虎", kind: "hero2", speedMul: 1.14, dmgMul: 0.85, comboMul: 0.82 }
+};
+var HERO_BY_KIND = { hero: "ahLong", hero2: "ahFu" };
+
+// ---------- game state ----------
+var G = null;
+function newGame(seed, cfg){
+  cfg = cfg || {};
+  var mode = cfg.mode || "1P";
+  var chars = cfg.chars || ["ahLong"];
+  var g = {
+    rng: new RNG(seed),
+    phase: "title",        // title | select | fight | go | clear | over
+    tick: 0, time: 0,
+    cam: 0, camTarget: 0,
+    wave: 0,               // 0..3 (3 = boss)
+    gate: 300,             // world x where current gate sits
+    score: 0,
+    shake: 0, hitstop: 0,
+    goTimer: 0, clearTimer: 0,
+    mode: mode,
+    players: [], enemies: [], weapons: [], parts: [], floats: [], props: [],
+    bossRef: null,
+    selMode: "1P", selChar: 0, atkTokens: 1,
+    msg: ""
+  };
+  g.players.push(makePlayer(0, chars[0] || "ahLong", 80, 215));
+  if (mode === "2P") g.players.push(makePlayer(1, chars[1] || "ahFu", 46, 232));
+  g.player = g.players[0];   // legacy single-player alias
+  return g;
+}
+function makePlayer(idx, charId, x, z){
+  var hc = HEROES[charId];
+  var p = makeFighter(hc.kind, x, z);
+  p.idx = idx; p.charId = charId;
+  p.hp = 100; p.maxhp = 100;
+  p.speed = Math.round(TYPES.hero.speed * hc.speedMul);
+  return p;
+}
+
+// ---------- fighters ----------
+var TYPES = {
+  hero:   { hp:100, speed:105, w:16, h:40, dmg:1 },
+  hero2:  { hp:100, speed:105, w:16, h:40, dmg:1 },
+  brawler:{ hp:30,  speed:52,  w:16, h:38, dmg:6 },
+  carrier:{ hp:24,  speed:62,  w:15, h:38, dmg:5 },
+  brute:  { hp:80,  speed:36,  w:22, h:46, dmg:10 },
+  boss:   { hp:260, speed:44,  w:26, h:52, dmg:12 }
+};
+function makeFighter(kind, x, z){
+  var t = TYPES[kind];
+  return {
+    kind: kind, x: x, z: z, y: 0, vy: 0, face: 1,
+    hp: t.hp, maxhp: t.hp, speed: t.speed, w: t.w, h: t.h, dmg: t.dmg,
+    state: "idle", tState: 0, atkT: 0, combo: 0, comboWin: 0,
+    vx: 0, vz: 0, flash: 0, invuln: 0, dead: false, removeMe: false,
+    weapon: null, aiT: 0, aiMode: "approach", thinkT: 0,
+    grabTarget: null, grabbedBy: null, stun: 0, seedOff: 0,
+    walkPh: 0, chargeT: 0, throwCd: 0
+  };
+}
+function spawnEnemy(kind, x, z, weapon){
+  var e = makeFighter(kind, x, z);
+  e.face = -1; e.seedOff = G.rng.next()*10;
+  if (weapon) e.weapon = { type: weapon, dur: 6 };
+  if (G.mode === "2P") e.hp = e.maxhp = Math.round(e.maxhp * 1.25);
+  G.enemies.push(e);
+  return e;
+}
+var WAVES = [
+  { gate: 760,  list: [["brawler", 840, 205, null], ["brawler", 900, 235, null], ["carrier", 960, 215, "bat"]] },
+  { gate: 1420, list: [["brawler", 1520, 225, null], ["carrier", 1580, 200, "knife"], ["brawler", 1640, 240, null], ["carrier", 1700, 215, "whip"]] },
+  { gate: 2050, list: [["brute", 2160, 220, null], ["brawler", 2240, 200, null], ["brawler", 2300, 240, null], ["carrier", 2360, 215, "knife"]] },
+  { gate: 2560, list: [["boss", 2450, 218, null], ["brawler", 2360, 240, null]] }
+];
+// per-wave pacing: how many enemies may be winding up / attacking at once
+var WAVE_TOKENS = [1, 2, 2, 99];
+function startWave(n){
+  G.wave = n;
+  var wv = WAVES[n];
+  G.gate = wv.gate;
+  G.atkTokens = WAVE_TOKENS[n];
+  for (var i=0;i<wv.list.length;i++){
+    var s = wv.list[i];
+    var e = spawnEnemy(s[0], s[1], s[2], s[3]);
+    if (G.wave === 0 && s[0] !== "boss") e.dmg = Math.max(3, e.dmg - 2); // wave-1 onboarding: softer hits
+    if (s[0] === "boss") G.bossRef = e;
+  }
+  // 2P scaling: +1 enemy per wave (kept clear of the boss arena centre)
+  if (G.mode === "2P"){
+    var extra = [["brawler", wv.gate - 80, 232], ["carrier", wv.gate - 40, 200],
+                 ["brute", wv.gate - 90, 238], ["brawler", wv.gate - 120, 205]][n];
+    var ex = spawnEnemy(extra[0], extra[1], extra[2], null);
+    if (G.wave === 0) ex.dmg = Math.max(3, ex.dmg - 2);
+  }
+  placeProps(n);
+  G.phase = "fight";
+}
+
+// ---------- props & pickups ----------
+var FOOD_TYPES = ["燒賣", "叉燒包"];
+// pre-placed per gate in stage data: deterministic (no runtime RNG for placement)
+var PROPS_PER_WAVE = [
+  [ { x: 350, z: 196, t: "crate" }, { x: 560, z: 240, t: "crate" } ],                                 // wave 1 gates
+  [ { x: 1000, z: 204, t: "bin" }, { x: 1230, z: 238, t: "crate" } ],                                 // wave 2 gates
+  [ { x: 1620, z: 198, t: "crate" }, { x: 1860, z: 242, t: "bin" }, { x: 1740, z: 220, t: "crate" } ],// wave 3 gates
+  [ { x: 2220, z: 192, t: "crate" }, { x: 2320, z: 248, t: "bin" } ]                                  // boss gate edges only
+];
+function placeProps(wave){
+  G.props = [];
+  var list = PROPS_PER_WAVE[wave] || [];
+  for (var i=0;i<list.length;i++)
+    G.props.push({ x: list[i].x, z: list[i].z, t: list[i].t, hp: 3, dead: false });
+}
+function breakProp(pr){
+  pr.dead = true;
+  spawnDust(pr.x, pr.z, 5);
+  SFX.down();
+  // seeded drop: 55% food / 25% weapon / 20% nothing. The weapon roll only
+  // lands when at least one hero is unarmed (spec) — otherwise it becomes
+  // food, which is always useful.
+  var r = G.rng.next();
+  var unarmed = false;
+  for (var ui=0;ui<G.players.length;ui++) if (!G.players[ui].weapon && !G.players[ui].dead) unarmed = true;
+  if (r < 0.55 || (r < 0.80 && !unarmed)){
+    G.parts.push({ food: true, label: G.rng.chance(0.5) ? FOOD_TYPES[0] : FOOD_TYPES[1],
+      x: pr.x, z: pr.z, y: 0, vx: 0, vy: 0, life: 9999, t: 0, s: 8 });
+  } else if (r < 0.80){
+    var types = ["bat", "knife", "whip"];
+    var wt = types[G.rng.int(0, 2)];
+    G.weapons.push({ type: wt, dur: WEAPON_STATS[wt].dur, x: pr.x, z: pr.z, y: 0, vy: 0, vx: 0, spin: 0 });
+  }
+}
+function addFloat(x, z, text, color){
+  G.floats.push({ x: x, z: z, text: text, color: color || "#7ae0a3", t: 0, life: 0.9 });
+}
+
+// ---------- combat helpers ----------
+function dropWeapon(f){
+  if (!f.weapon) return;
+  G.weapons.push({ type: f.weapon.type, dur: f.weapon.dur, x: f.x + f.face*6, z: f.z, y: 0, vy: 120, vx: f.face*40, spin: 0 });
+  f.weapon = null;
+}
+function hurt(target, dmg, kx, opts){
+  opts = opts || {};
+  if (target.invuln > 0 || target.dead) return false;
+  target.hp -= dmg;
+  target.flash = 0.12;
+  target.stun = Math.max(target.stun, opts.stun || 0.22);
+  if (target.grabbedBy){ target.grabbedBy.grabTarget = null; target.grabbedBy = null; }
+  spawnDust(target.x, target.z, 2);
+  if (target.hp <= 0 || opts.knockdown){
+    target.state = "down"; target.tState = 0;
+    target.vx = kx; target.vy = 260; target.y = 0.01;
+    dropWeapon(target);
+    if (target.hp <= 0){ target.dead = true; }
+    SFX.down();
+  } else {
+    target.state = "hurt"; target.tState = 0;
+    target.vx = kx * 0.4;
+    SFX.punch();
+  }
+  if (target.idx !== undefined){ G.shake = Math.max(G.shake, 3); }
+  return true;
+}
+function spawnDust(x, z, n){
+  for (var i=0;i<n;i++){
+    G.parts.push({ x: x + G.rng.range(-6,6), z: z, y: G.rng.range(0,4),
+      vx: G.rng.range(-25,25), vy: G.rng.range(15,50), life: G.rng.range(0.25,0.5), t: 0, s: G.rng.range(1.5,3) });
+  }
+}
+
+// ---------- player update ----------
+// Per-player input channel: P1 uses the global input/edgeBuf (keyboard arrows+
+// JKL / touch); P2 has its own channel. Both are part of the sim input
+// structure — the lockstep foundation for online play.
+var pins = [null, null];
+// Online session state (null = local play). While NET is active, BOTH
+// heroes read from staging pins that the lockstep layer fills from input
+// records — never from the live local channel directly.
+var NET = null;
+var stagePins = [null, null];
+function makeStagePin(){
+  return { lv: { up:false, down:false, left:false, right:false, punch:false, kick:false, jump:false },
+           buf: { punch: 0, kick: 0, jump: 0 },
+           edge: { punchP:false, kickP:false, jumpP:false } };
+}
+function getPin(p){
+  if (NET && NET.active){
+    if (!stagePins[p.idx]) stagePins[p.idx] = makeStagePin();
+    return stagePins[p.idx];
+  }
+  if (p.idx === 0) return { lv: input, buf: edgeBuf, edge: input };
+  if (!pins[1]) pins[1] = { lv: { up:false, down:false, left:false, right:false, punch:false, kick:false, jump:false }, buf: { punch:0, kick:0, jump:0 }, edge: { punchP:false, kickP:false, jumpP:false } };
+  return pins[1];
+}
+function pinForTest(idx){
+  var pin = (idx === 1) ? getPin({ idx: 1 })
+                        : { lv: input, buf: edgeBuf, edge: input };
+  return {
+    set: function(o){ for (var k in o){
+      if (k === "punchP" || k === "kickP" || k === "jumpP"){
+        var kind = k.slice(0, -1);
+        if (o[k]) pin.buf[kind] = BUF_TICKS; else pin.buf[kind] = 0;
+      } else pin.lv[k] = o[k];
+    } },
+    buf: pin.buf, lv: pin.lv
+  };
+}
+function playerStep(p, dt){
+  var pin = getPin(p), IN = pin.lv, EB = pin.buf, ED = pin.edge;
+  p.tState += dt;
+  if (p.flash > 0) p.flash -= dt;
+  if (p.invuln > 0) p.invuln -= dt;
+  if (p.comboWin > 0){ p.comboWin -= dt; if (p.comboWin <= 0) p.combo = 0; }
+
+  // knocked down / airborne physics
+  if (p.state === "down"){
+    p.y += p.vy * dt; p.vy -= GRAV * dt;
+    p.x += p.vx * dt; p.vx *= 0.86;
+    if (p.y <= 0 && p.vy < 0){ p.y = 0; p.vy = -p.vy * 0.35; if (Math.abs(p.vy) < 60){ p.vy = 0; } }
+    if (p.tState > 0.85){
+      if (p.dead){
+        // co-op: stay down until the gate changes (respawn handled in simStep)
+        if (!(G.mode === "2P" && otherAlive(p))) p.removeMe = true;
+      }
+      else { p.state = "idle"; p.tState = 0; p.invuln = 0.5; }
+    }
+    return;
+  }
+  if (p.y > 0 || p.state === "jump"){
+    p.y += p.vy * dt; p.vy -= GRAV * dt;
+    p.x += p.vx * dt; p.z += p.vz * dt;
+    if (p.y <= 0){ p.y = 0; p.state = "idle"; p.tState = 0; spawnDust(p.x, p.z, 3); }
+    if (p.state === "jumpatk" && p.y <= 0){ p.state = "idle"; }
+    clampBelt(p);
+    // jump attack: punch/kick pressed mid-air (consumes the buffered edge)
+    if (p.y > 0 && p.state === "jump" && (ED.punchP || ED.kickP)){
+      var jk = ED.punchP ? "punch" : "kick";
+      if (jk === "punch") EB.punch = 0; else EB.kick = 0;
+      startPlayerAttack(p, jk);
+    }
+    return;
+  }
+  if (p.state === "hurt"){
+    p.x += p.vx * dt; p.vx *= 0.8;
+    if (p.tState > 0.25){ p.state = "idle"; p.tState = 0; }
+    return;
+  }
+  if (p.state === "attack"){
+    var durA = (p.atkKind === "kick") ? 0.34 : 0.26;
+    if (p.tState >= durA){ p.state = "idle"; p.tState = 0; }
+    return;
+  }
+  if (p.state === "dash"){
+    p.x += p.face * 230 * dt;
+    // dash-attack connects when passing through an enemy
+    if (!p.hitDone){ p.hitDone = true; doAttackHit(p, 17, 12, 6, p.face * 240, true); }
+    if (p.tState > 0.22){ p.state = "idle"; p.tState = 0; }
+    clampBelt(p); return;
+  }
+  if (p.state === "grab"){
+    var gt = p.grabTarget;
+    if (!gt || gt.dead || gt.state === "down"){ p.state = "idle"; p.grabTarget = null; if (gt) gt.grabbedBy = null; return; }
+    gt.x = p.x + p.face * 14; gt.z = p.z; gt.face = -p.face;
+    if (ED.punchP){
+      EB.punch = 0;
+      p.atkKind = "knee"; p.tState = 0;
+      var cm = HEROES[p.charId].comboMul;
+      hurt(gt, Math.max(1, Math.round(4 * HEROES[p.charId].dmgMul)), 0, { stun: 0.5 });
+      G.score += 20; G.hitstop = 0.05; SFX.kick();
+      p.combo++;
+      if (p.combo >= Math.max(2, Math.round(3 * cm))){
+        hurt(gt, 6, p.face * 260, { knockdown: true });
+        gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; p.combo = 0;
+        G.score += 50;
+      }
+    }
+    if (ED.kickP){
+      EB.kick = 0;
+      hurt(gt, 6, p.face * 330, { knockdown: true });
+      gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; p.combo = 0;
+      G.score += 50; SFX.kick();
+    }
+    if (p.tState > 2.2){ gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; }
+    return;
+  }
+
+  // --- free movement / actions from idle ---
+  var mx = (IN.right?1:0) - (IN.left?1:0);
+  var mz = (IN.down?1:0) - (IN.up?1:0);
+  if (mx !== 0) p.face = mx;
+  // dash: double-tap left/right tracked per player
+  var pv = p.prevLv || (p.prevLv = { left:false, right:false });
+  if (IN.right && !pv.right) tapDir(1, p);
+  if (IN.left && !pv.left) tapDir(-1, p);
+  pv.right = IN.right; pv.left = IN.left;
+  if (p.dashReq){
+    p.dashReq = false; p.state = "dash"; p.tState = 0; p.hitDone = false;
+    SFX.swing();
+    return;
+  }
+  p.x += mx * p.speed * dt;
+  p.z += mz * p.speed * 0.72 * dt;
+  if (mx !== 0 || mz !== 0){ p.state = "walk"; p.walkPh += dt * 9; } else p.state = "idle";
+  clampBelt(p);
+
+  if (ED.jumpP){
+    EB.jump = 0;
+    p.state = "jump"; p.tState = 0; p.y = 0.01; p.vy = JUMP_V;
+    p.vx = mx * p.speed * 1.25; p.vz = mz * 40;
+    return;
+  }
+  if (ED.punchP){
+    EB.punch = 0;
+    // pickup first if standing on a weapon and unarmed
+    if (!p.weapon && tryPickup(p)) return;
+    startPlayerAttack(p, "punch");
+    return;
+  }
+  if (ED.kickP){
+    EB.kick = 0;
+    startPlayerAttack(p, "kick");
+    return;
+  }
+  // walk-over food pickup (any grounded idle/walk state)
+  tryFood(p);
+}
+function tapDir(d, p){
+  var lt = p.lastTap || (p.lastTap = { dir: 0, t: -9 });
+  var now = G.time;
+  if (lt.dir === d && (now - lt.t) >= 0 && (now - lt.t) < 0.28) p.dashReq = true;
+  lt.dir = d; lt.t = now;
+}
+function clampBelt(f){
+  if (f.z < BELT_TOP) f.z = BELT_TOP;
+  if (f.z > BELT_BOT) f.z = BELT_BOT;
+  if (f.x < 12) f.x = 12;
+  var maxX = (G && (G.phase === "fight")) ? G.gate : WORLD_LEN;
+  if (f.x > maxX) f.x = maxX;
+}
+function tryPickup(p){
+  for (var i=0;i<G.weapons.length;i++){
+    var w = G.weapons[i];
+    if (w.y <= 0 && Math.abs(w.x - p.x) < 16 && Math.abs(w.z - p.z) < 10){
+      p.weapon = { type: w.type, dur: w.dur };
+      G.weapons.splice(i,1);
+      SFX.pickup();
+      return true;
+    }
+  }
+  return false;
+}
+var WEAPON_STATS = {
+  bat:   { reach: 24, dmg: 9,  dur: 8 },
+  knife: { reach: 20, dmg: 8,  dur: 6 },
+  whip:  { reach: 34, dmg: 6,  dur: 10 }
+};
+function startPlayerAttack(p, kind){
+  p.state = "attack"; p.tState = 0; p.atkKind = kind; p.hitDone = false;
+  if (p.y > 0) p.state = "jumpatk";
+  var hc = HEROES[p.charId] || HEROES.ahLong;
+  if (kind === "punch"){
+    if (p.weapon){
+      var ws = WEAPON_STATS[p.weapon.type];
+      doAttackHit(p, ws.reach, 12, ws.dmg, p.face * 170, false);
+      if (p.weapon.type === "whip") SFX.crack(); else SFX.swing();
+      wearWeapon(p);
+    } else {
+      p.combo = (p.comboWin > 0) ? p.combo + 1 : 1;
+      if (p.combo > 3) p.combo = 1;
+      p.comboWin = 0.55 * hc.comboMul;
+      var kd = (p.combo === 3);
+      doAttackHit(p, 17, 10, Math.max(1, Math.round((kd ? 7 : 5) * hc.dmgMul)), p.face * (kd ? 250 : 120), kd);
+      SFX.swing();
+    }
+  } else { // kick
+    doAttackHit(p, 21, 11, Math.max(1, Math.round(7 * hc.dmgMul)), p.face * 260, false);
+    SFX.swing();
+  }
+  // grab check: unarmed punch at very close range vs standing enemy -> grab attempt happens in hit resolution
+}
+function wearWeapon(p){
+  p.weapon.dur--;
+  if (p.weapon.dur <= 0){ p.weapon = null; SFX.down(); }
+}
+function weaponOf(e){ return e.weapon; }
+
+// resolve an attacker's strike: players hit enemies AND breakable props;
+// enemies hit players (friendly fire OFF — players never hit each other).
+function doAttackHit(atk, reach, zTol, dmg, kx, knockdown){
+  var isPlayer = atk.idx !== undefined;
+  var targets = isPlayer ? G.enemies : G.players;
+  var hitAny = false;
+  for (var i=0;i<targets.length;i++){
+    var t = targets[i];
+    if (t.dead || t.state === "down") continue;
+    if (Math.abs(t.y - atk.y) > 26) continue;
+    var dx = (t.x - atk.x) * atk.face;
+    if (dx < -4 || dx > reach + t.w/2) continue;
+    if (Math.abs(t.z - atk.z) > zTol + 4) continue;
+    // grab: player unarmed punch, very close, enemy standing
+    if (isPlayer && !atk.weapon && atk.atkKind === "punch" && dx < 13 && t.state !== "attack" && atk.y === 0){
+      t.grabbedBy = atk; atk.grabTarget = t; atk.state = "grab"; atk.tState = 0; atk.combo = 0;
+      t.state = "grabbed"; t.tState = 0;
+      hitAny = true; break;
+    }
+    var heavy = (t.kind === "brute" || t.kind === "boss") && !knockdown && dmg < 8;
+    var ok = hurt(t, dmg, heavy ? kx * 0.25 : kx, { knockdown: knockdown && !heavy, stun: 0.28 });
+    if (ok){
+      hitAny = true;
+      if (isPlayer){
+        G.score += 30;
+        G.hitstop = Math.max(G.hitstop, knockdown ? 0.07 : 0.045);
+        if (t.dead) G.score += 100;
+      }
+    }
+  }
+  // player attacks also break props in range
+  if (isPlayer && atk.y === 0){
+    for (var j=0;j<G.props.length;j++){
+      var pr = G.props[j];
+      if (pr.dead) continue;
+      var pdx = (pr.x - atk.x) * atk.face;
+      if (pdx < -6 || pdx > reach + 10) continue;
+      if (Math.abs(pr.z - atk.z) > zTol + 8) continue;
+      pr.hp -= 1;
+      spawnDust(pr.x, pr.z, 2);
+      G.hitstop = Math.max(G.hitstop, 0.03);
+      if (pr.hp <= 0) breakProp(pr);
+      hitAny = true;
+    }
+  }
+  return hitAny;
+}
+
+// ---------- targeting helpers ----------
+function nearestPlayer(e){
+  var best = null, bd = 1e9;
+  for (var i=0;i<G.players.length;i++){
+    var q = G.players[i];
+    if (q.dead) continue;
+    var d = Math.abs(q.x - e.x) + Math.abs(q.z - e.z);
+    if (d < bd){ bd = d; best = q; }
+  }
+  return best;
+}
+function otherAlive(p){
+  for (var i=0;i<G.players.length;i++) if (G.players[i] !== p && !G.players[i].dead) return true;
+  return false;
+}
+// attack-token gate: only G.atkTokens enemies may be in windup/attack at once
+function tokensUsed(except){
+  var n = 0;
+  for (var i=0;i<G.enemies.length;i++){
+    var o = G.enemies[i];
+    if (o !== except && o.state === "attack") n++;
+  }
+  return n;
+}
+
+// ---------- enemy update ----------
+function enemyStep(e, dt){
+  var p = nearestPlayer(e) || G.player;
+  e.tState += dt;
+  if (e.flash > 0) e.flash -= dt;
+  if (e.invuln > 0) e.invuln -= dt;
+  if (e.throwCd > 0) e.throwCd -= dt;
+
+  if (e.state === "down"){
+    e.y += e.vy * dt; e.vy -= GRAV * dt;
+    e.x += e.vx * dt; e.vx *= 0.86;
+    if (e.y <= 0 && e.vy < 0){ e.y = 0; e.vy = -e.vy * 0.35; if (Math.abs(e.vy) < 60) e.vy = 0; }
+    if (e.tState > 0.8){
+      if (e.dead){ e.removeMe = true; }
+      else { e.state = "idle"; e.tState = 0; e.invuln = 0.7; }
+    }
+    return;
+  }
+  if (e.state === "grabbed"){
+    if (!e.grabbedBy){ e.state = "idle"; e.tState = 0; }
+    return;
+  }
+  if (e.state === "hurt"){
+    e.x += e.vx * dt; e.vx *= 0.8;
+    if (e.tState > 0.28){ e.state = "idle"; e.tState = 0; }
+    return;
+  }
+  if (e.state === "attack"){
+    var windup = (G.wave === 0) ? 0.30 : 0.22;
+    if (!e.hitDone && e.tState > windup){
+      e.hitDone = true;
+      var reach = (e.kind === "brute" || e.kind === "boss") ? 26 : 18;
+      doAttackHit(e, reach, 11, e.dmg, e.face * 180, e.chargeAtk === true);
+    }
+    if (e.tState > windup + 0.23){ e.state = "idle"; e.tState = 0; e.chargeAtk = false; }
+    return;
+  }
+  if (e.state === "charge"){
+    e.x += e.face * 200 * dt;
+    if (!e.hitDone){
+      for (var ci=0;ci<G.players.length;ci++){
+        var cp = G.players[ci];
+        if (!cp.dead && Math.abs(cp.x - e.x) < 20 && Math.abs(cp.z - e.z) < 12 && cp.y < 20){
+          e.hitDone = true;
+          hurt(cp, e.dmg, e.face * 260, { knockdown: true });
+          break;
+        }
+      }
+    }
+    if (e.tState > 0.42){ e.state = "idle"; e.tState = 0; }
+    clampBelt(e); return;
+  }
+  if (e.stun > 0){ e.stun -= dt; e.state = "idle"; return; }
+  if (!nearestPlayer(e)) { e.state = "idle"; return; }
+
+  // --- simple AI ---
+  e.thinkT -= dt;
+  var dx = p.x - e.x, dz = p.z - e.z;
+  var adx = Math.abs(dx), adz = Math.abs(dz);
+  e.face = dx >= 0 ? 1 : -1;
+  if (e.thinkT <= 0){
+    e.thinkT = G.rng.range(0.25, 0.55);
+    var r = G.rng.next();
+    if (adx < 90 && r < 0.18) e.aiMode = "circle";
+    else if (r < 0.08) e.aiMode = "retreat";
+    else e.aiMode = "approach";
+    e.aiT = G.rng.range(0.4, 1.0);
+  }
+  if (e.aiT > 0) e.aiT -= dt; else e.aiMode = "approach";
+
+  // knife thrower behaviour
+  if (e.kind === "carrier" && e.weapon && e.weapon.type === "knife" && e.throwCd <= 0 && adx > 90 && adx < 200 && adz < 8 && G.rng.chance(0.012)){
+    G.weapons.push({ type: "knife", dur: 3, x: e.x, z: e.z, y: 22, vy: 0, vx: e.face * 240, spin: 1, thrown: true });
+    e.weapon = null; e.throwCd = 3;
+    SFX.swing();
+  }
+
+  var inRange = adx < ((e.kind === "brute" || e.kind === "boss") ? 24 : 17) && adz < 9 && p.y < 14;
+  if (inRange && e.invuln <= 0 && (e.kind === "boss" || tokensUsed(e) < G.atkTokens)){
+    var atkChance = (e.kind === "boss") ? 0.05 : 0.035;
+    if (G.rng.chance(atkChance)){
+      e.state = "attack"; e.tState = 0; e.hitDone = false;
+      e.chargeAtk = false;
+      SFX.swing();
+      return;
+    }
+  }
+  // brute/boss shoulder charge from mid range
+  if ((e.kind === "brute" || e.kind === "boss") && adx > 55 && adx < 110 && adz < 8 && e.invuln <= 0 && G.rng.chance(e.kind === "boss" ? 0.014 : 0.008)){
+    e.state = "charge"; e.tState = 0; e.hitDone = false;
+    SFX.swing();
+    return;
+  }
+  var sp = e.speed;
+  var mvx = 0, mvz = 0;
+  if (e.aiMode === "approach"){
+    if (adx > 13) mvx = Math.sign(dx) * sp;
+    if (adz > 4) mvz = Math.sign(dz) * sp * 0.7;
+  } else if (e.aiMode === "circle"){
+    mvz = (Math.sin(G.time * 1.7 + e.seedOff) > 0 ? 1 : -1) * sp * 0.55;
+    if (adx > 30) mvx = Math.sign(dx) * sp * 0.6;
+  } else if (e.aiMode === "retreat"){
+    mvx = -Math.sign(dx) * sp * 0.7;
+  }
+  e.x += mvx * dt; e.z += mvz * dt;
+  if (mvx !== 0 || mvz !== 0){ e.state = "walk"; e.walkPh += dt * 8; } else e.state = "idle";
+  clampBelt(e);
+  // keep enemies from stacking exactly
+  for (var j=0;j<G.enemies.length;j++){
+    var o = G.enemies[j];
+    if (o !== e && !o.dead && Math.abs(o.x - e.x) < 10 && Math.abs(o.z - e.z) < 6) e.x += (e.x < o.x ? -8 : 8) * dt;
+  }
+}
+
+// thrown weapons / loose weapons physics
+function weaponStep(dt){
+  for (var i=G.weapons.length-1;i>=0;i--){
+    var w = G.weapons[i];
+    if (w.thrown){
+      w.x += w.vx * dt; w.spin += dt * 18;
+      var hitP = null;
+      for (var pi=0;pi<G.players.length;pi++){
+        var pp = G.players[pi];
+        if (!pp.dead && Math.abs(pp.x - w.x) < 10 && Math.abs(pp.z - w.z) < 8 && pp.y < 26 && pp.state !== "down"){ hitP = pp; break; }
+      }
+      if (hitP){
+        hurt(hitP, 5, Math.sign(w.vx) * 160, {});
+        G.weapons.splice(i,1); continue;
+      }
+      if (w.x < G.cam - 40 || w.x > G.cam + W + 60){ G.weapons.splice(i,1); continue; }
+    } else if (w.y > 0 || w.vy !== 0){
+      w.y += w.vy * dt; w.vy -= GRAV * dt; w.x += (w.vx || 0) * dt; w.vx *= 0.9;
+      if (w.y <= 0){ w.y = 0; w.vy = 0; w.vx = 0; }
+    }
+  }
+}
+
+// food pickup: walk over a dropped food item to eat it (+25 HP, capped)
+function tryFood(p){
+  if (p.dead || p.y > 0) return;
+  for (var i=G.parts.length-1;i>=0;i--){
+    var q = G.parts[i];
+    if (!q.food) continue;
+    if (Math.abs(q.x - p.x) < 14 && Math.abs(q.z - p.z) < 9){
+      G.parts.splice(i,1);
+      p.hp = Math.min(p.maxhp, p.hp + 25);
+      addFloat(p.x, p.z, "+25", "#7ae0a3");
+      SFX.pickup();
+      return;
+    }
+  }
+}
+
+// derive one player's action edges from their press buffer for this step
+function deriveEdges(pin){
+  pin.edge.punchP = pin.buf.punch > 0;
+  pin.edge.kickP = pin.buf.kick > 0;
+  pin.edge.jumpP = pin.buf.jump > 0;
+  if (pin.buf.punch > 0) pin.buf.punch--;
+  if (pin.buf.kick > 0) pin.buf.kick--;
+  if (pin.buf.jump > 0) pin.buf.jump--;
+}
+function allPlayersDead(){
+  for (var i=0;i<G.players.length;i++) if (!G.players[i].dead) return false;
+  return true;
+}
+// co-op: a downed player comes back when the arena clears (fight->go)
+// or the next wave starts, with half HP — as long as a partner is alive
+function respawnCheck(){
+  if (G.mode !== "2P") return;
+  if (G.phase !== "go" && G.phase !== "fight") return;
+  for (var i=0;i<G.players.length;i++){
+    var q = G.players[i];
+    if (q.dead && otherAlive(q)){
+      q.dead = false; q.removeMe = false;
+      q.hp = Math.floor(q.maxhp / 2);
+      var alive = null;
+      for (var j=0;j<G.players.length;j++) if (!G.players[j].dead && G.players[j] !== q) alive = G.players[j];
+      q.x = alive ? Math.max(14, alive.x - 30) : 80;
+      q.z = alive ? alive.z : 215;
+      q.y = 0; q.vy = 0; q.vx = 0; q.state = "idle"; q.tState = 0; q.invuln = 1.0;
+      q.weapon = null; q.grabTarget = null; q.grabbedBy = null;
+      addFloat(q.x, q.z, "復活！", "#8ad2ff");
+    }
+  }
+}
+
+// ---------- main sim step ----------
+function simStep(dt){
+  // derive this step's action edges from the press buffers (single source:
+  // buffers are armed by input producers, ticked down here, and zeroed by
+  // playerStep when actually consumed — so a press survives hitstop and
+  // busy states instead of being silently dropped).
+  var pin1 = getPin(G.players[0]);
+  deriveEdges(pin1);
+  var pin2 = (G.mode === "2P" && G.players[1]) ? getPin(G.players[1]) : null;
+  if (pin2) deriveEdges(pin2);
+  if (G.phase === "title" || G.phase === "clear" || G.phase === "over"){
+    G.tick++;
+    if (input.startP || uiStartFlag){
+      uiStartFlag = false;
+      var seed2 = fixedSeed;
+      G = newGame(seed2, { mode: G.selMode, chars: G.selMode === "2P" ? ["ahLong", "ahFu"] : [selIdx === 1 ? "ahFu" : "ahLong"] });
+      G.phase = "fight";
+      startWave(0);
+      SFX.go();
+    }
+    input.startP = false;
+    return;
+  }
+  if (G.phase === "select"){ G.tick++; selectStep(); return; }
+  if (G.phase === "lobby"){ G.tick++; return; }
+  if (paused && !(NET && NET.active)) return;
+  G.tick++; G.time += dt;
+  if (G.hitstop > 0){ G.hitstop -= dt; decayFx(dt);
+    // keep direction levels in sync so a held direction is not mistaken
+    // for a fresh double-tap when hitstop ends (playerStep also mirrors
+    // levels into each player's own prevLv every step)
+    prevInput.left = input.left; prevInput.right = input.right;
+    prevInput.up = input.up; prevInput.down = input.down;
+    return; }
+
+  for (var pi=0;pi<G.players.length;pi++) playerStep(G.players[pi], dt);
+  var p = leadPlayer();
+  prevInput.punch = input.punch; prevInput.kick = input.kick; prevInput.jump = input.jump;
+  prevInput.left = input.left; prevInput.right = input.right;
+  prevInput.up = input.up; prevInput.down = input.down;
+
+  for (var i=G.enemies.length-1;i>=0;i--){
+    var e = G.enemies[i];
+    enemyStep(e, dt);
+    if (e.removeMe) G.enemies.splice(i,1);
+  }
+  weaponStep(dt);
+  respawnCheck();
+
+  // particles + floaters
+  decayFx(dt);
+  for (var fi=G.floats.length-1;fi>=0;fi--){
+    var fl = G.floats[fi]; fl.t += dt;
+    if (fl.t > fl.life) G.floats.splice(fi,1);
+  }
+  if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 14);
+
+  // camera follows the lead (leftmost living) player, clamped to the gate.
+  // Moves toward the target at a fixed per-step rate (frame-count based,
+  // not exponential) so replays are bit-exact.
+  var want = p.x - 150;
+  var maxCam = (G.phase === "fight") ? (G.gate - W + 60) : (WORLD_LEN - W);
+  if (want > maxCam) want = maxCam;
+  if (want < 0) want = 0;
+  if (want < G.cam) want = G.cam; // never scroll back
+  var cd = want - G.cam;
+  var cStep = 320 * dt;
+  if (cd > cStep) G.cam += cStep; else if (cd < -cStep) G.cam -= cStep; else G.cam = want;
+  if (G.cam > WORLD_LEN - W) G.cam = WORLD_LEN - W;
+
+  // wave clear?
+  if (G.phase === "fight" && G.enemies.length === 0){
+    if (G.wave >= 3){
+      G.phase = "clear"; G.clearTimer = 0; SFX.clear();
+      var nb = 0;
+      for (var bi=0;bi<G.players.length;bi++) if (!G.players[bi].dead) nb += Math.floor(G.players[bi].hp) * 10;
+      nb += Math.max(0, 600 - Math.floor(G.time)) * 2;
+      if (nb > 0) G.score += nb;
+    } else {
+      G.phase = "go"; G.goTimer = 0; SFX.go();
+    }
+  }
+  if (G.phase === "go"){
+    G.goTimer += dt;
+    respawnCheck();
+    // a living player walks past old gate -> trigger next wave in its zone
+    var next = WAVES[G.wave + 1];
+    if (next){
+      for (var gi=0;gi<G.players.length;gi++){
+        if (!G.players[gi].dead && G.players[gi].x > next.gate - 330){ startWave(G.wave + 1); break; }
+      }
+    }
+  }
+  if (G.phase === "clear") G.clearTimer += dt;
+  if (allPlayersDead()){
+    if (G.phase !== "over"){ G.phase = "over"; SFX.over(); }
+  }
+}
+function leadPlayer(){
+  var best = null;
+  for (var i=0;i<G.players.length;i++){
+    var q = G.players[i];
+    if (q.dead) continue;
+    if (!best || q.x < best.x) best = q;
+  }
+  return best || G.players[0];
+}
+function decayFx(dt){
+  for (var i=G.parts.length-1;i>=0;i--){
+    var q = G.parts[i];
+    if (q.food){ continue; } // food pickups rest on the ground until eaten
+    q.t += dt;
+    q.x += q.vx * dt; q.y += q.vy * dt; q.vy -= 300 * dt;
+    if (q.y < 0) q.y = 0;
+    if (q.t > q.life) G.parts.splice(i,1);
+  }
+}
+
+// ---------- rendering ----------
+var cv = document.getElementById("cv");
+var ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+function R(x,y,w,h,c){ ctx.fillStyle = c; ctx.fillRect(x|0, y|0, Math.ceil(w), Math.ceil(h)); }
+function TXT(s, x, y, size, color, align, bold){
+  ctx.fillStyle = color;
+  ctx.font = (bold ? "bold " : "") + size + "px 'PingFang TC','Microsoft JhengHei','Noto Sans TC',sans-serif";
+  ctx.textAlign = align || "left"; ctx.textBaseline = "top";
+  ctx.fillText(s, x, y);
+}
+function shadow(x, z, w){
+  ctx.fillStyle = "rgba(0,0,0,0.30)";
+  ctx.beginPath(); ctx.ellipse(x, z + 3, w * 0.62, 3.4, 0, 0, 6.2832); ctx.fill();
+}
+
+// pixel character drawing: all procedural rects.
+// pose: idle|walk|attack|kick|hurt|down|jump... f.walkPh animates legs.
+function drawFighter(f){
+  var sx = Math.round(f.x - G.cam);
+  var gy = Math.round(f.z);                 // ground screen y
+  var sy = gy - Math.round(f.y);            // body base y (jump raises)
+  if (sx < -70 || sx > W + 70) return;      // off-screen cull (boss spawns ahead of camera)
+  var face = f.face;
+  var flash = f.flash > 0;
+  var C;
+  if (f.kind === "hero")        C = { skin:"#f0c08a", hair:"#22242e", top:"#d33f2e", top2:"#a82a1e", pants:"#2b3a67", shoes:"#f2f2f2", belt:"#ffd94a" };
+  else if (f.kind === "hero2")  C = { skin:"#e8b078", hair:"#5a3410", top:"#1f9d8f", top2:"#14706a", pants:"#5b2a6e", shoes:"#ffd94a", belt:"#ffffff" };
+  else if (f.kind === "brawler")C = { skin:"#d99a5f", hair:"#101010", top:"#3f7a3a", top2:"#2c5528", pants:"#4a3423", shoes:"#222", belt:"#888" };
+  else if (f.kind === "carrier")C = { skin:"#f0c8a0", hair:"#7a1f3d", top:"#7a2d8f", top2:"#5a1f6a", pants:"#22242e", shoes:"#c22", belt:"#ddd" };
+  else if (f.kind === "brute")  C = { skin:"#c98a54", hair:"#000", top:"#28418c", top2:"#1a2c5f", pants:"#333", shoes:"#111", belt:"#c9a227" };
+  else /* boss */               C = { skin:"#e0aa72", hair:"#3a3a3a", top:"#15151c", top2:"#000", pants:"#1c1c26", shoes:"#000", belt:"#ffd94a" };
+  if (flash){ for (var k in C) C[k] = "#ffffff"; }
+
+  var big = (f.kind === "brute" || f.kind === "boss");
+  var u = big ? 1.22 : 1.0;                 // scale unit
+  var bw = Math.round(13 * u), bh = f.h;    // body width / height
+  var legSwing = (f.state === "walk") ? Math.round(Math.sin(f.walkPh) * 3) : 0;
+  var down = (f.state === "down");
+  shadow(sx, gy, bw + 4);
+  ctx.save();
+  ctx.translate(sx, sy);
+  if (down){
+    // lying body
+    R(-bw, -5, bw * 2, 5, C.pants);
+    R(-bw - 4 * face, -8, bw + 2, 6, C.top);
+    R((face > 0 ? -bw - 11 : bw + 3), -8, 8, 7, C.skin); // head
+    R((face > 0 ? -bw - 11 : bw + 3), -9, 8, 3, C.hair);
+    ctx.restore();
+    drawNameHp(f, sx, gy - bh - 8);
+    return;
+  }
+  var bodyTop = -bh;
+  // legs
+  var legH = Math.round(bh * 0.38);
+  R(-bw/2 + 1 + legSwing, -legH, 4.6 * u, legH, C.pants);
+  R(bw/2 - 5.6 * u - legSwing, -legH, 4.6 * u, legH, C.pants);
+  R(-bw/2 + legSwing, -3, 5.6 * u, 3, C.shoes);
+  R(bw/2 - 5.6 * u - legSwing, -3, 5.6 * u, 3, C.shoes);
+  // torso
+  R(-bw/2, bodyTop + Math.round(bh*0.34), bw, Math.round(bh*0.30), C.top);
+  R(-bw/2, bodyTop + Math.round(bh*0.34), bw, 3, C.top2);
+  R(-bw/2, -legH - 2, bw, 3, C.belt);
+  // head
+  var hd = Math.round(bh * 0.24);
+  R(-hd/2, bodyTop, hd, hd, C.skin);
+  R(-hd/2, bodyTop, hd, Math.round(hd*0.38), C.hair);
+  if (f.kind === "boss"){ R(-hd/2, bodyTop + hd + 1, hd, 3, "#ffd94a"); } // gold chain-ish collar
+  if (f.kind === "carrier"){ R(face * (hd/2 - 1), bodyTop + 2, 3, hd + 4, C.hair); } // long hair side
+  // arms by state
+  var shY = bodyTop + Math.round(bh*0.36);
+  var armC = C.top2, skinC = C.skin;
+  var rearArm = function(){ R(-face * (bw/2 + 2), shY, 4 * u, Math.round(bh*0.24), armC); };
+  if (f.state === "attack"){
+    if (f.atkKind === "kick"){
+      rearArm();
+      // front leg extended
+      R(face * (bw/2 - 2), -legH + 2, Math.round(15 * u), 5, C.pants);
+      R(face * (bw/2 + 11 * u), -legH + 2, 6, 5, C.shoes);
+    } else if (f.atkKind === "knee"){
+      rearArm();
+      R(face * (bw/2 - 1), -legH - 6, 6, 10, C.pants);
+    } else {
+      // punch / weapon swing: front arm extended
+      var ext = f.weapon ? WEAPON_STATS[f.weapon.type].reach : 13;
+      R(face * (bw/2 - 1), shY + 1, face * ext * 0.55, 4.4 * u, armC);
+      var hx = face * (bw/2 + ext * 0.55);
+      if (f.weapon) drawWeaponInHand(f.weapon.type, hx, shY + 3, face, flash);
+      else R(hx - 2, shY, 5, 5, skinC);
+      R(-face * (bw/2 + 1), shY + 3, 4 * u, Math.round(bh*0.2), armC);
+    }
+  } else if (f.state === "dash" || f.state === "charge"){
+    R(face * (bw/2 - 1), shY + 2, face * 11, 4.4 * u, armC);      // shoulder forward
+    R(-face * (bw/2 + 1), shY + 2, 4 * u, Math.round(bh*0.2), armC);
+  } else if (f.state === "hurt" || f.state === "grabbed"){
+    R(-face * (bw/2 + 2), shY - 3, 4 * u, Math.round(bh*0.2), armC);
+    R(face * (bw/2 - 1), shY - 3, 4 * u, Math.round(bh*0.2), armC);
+  } else if (f.state === "grab"){
+    R(face * (bw/2 - 1), shY + 1, face * 10, 4.4 * u, armC);
+    R(face * (bw/2 - 1), shY + 7, face * 9, 4.4 * u, armC);
+  } else {
+    // idle / walk arms
+    var sw = (f.state === "walk") ? Math.round(Math.sin(f.walkPh) * 2) : 0;
+    R(-face * (bw/2 + 1) , shY, 4 * u, Math.round(bh*0.26), armC);
+    R(face * (bw/2 - 3), shY + sw, 4 * u, Math.round(bh*0.26), armC);
+    if (f.weapon){
+      var hx2 = face * (bw/2 + 1);
+      drawWeaponInHand(f.weapon.type, hx2, shY + Math.round(bh*0.26), face, flash);
+    }
+  }
+  ctx.restore();
+  if (f.state === "charge") { /* dust */ }
+  drawNameHp(f, sx, gy - bh - 8 - Math.round(f.y));
+}
+function drawNameHp(f, sx, y){
+  if (f.idx !== undefined || f.kind === "boss") return; // players use the HUD bars
+  if (f.dead) return;
+  var w = 22;
+  R(sx - w/2 - 1, y - 1, w + 2, 4, "rgba(0,0,0,0.55)");
+  R(sx - w/2, y, w * Math.max(0, f.hp / f.maxhp), 2, "#e5484d");
+}
+function drawWeaponInHand(type, x, y, face, flash){
+  ctx.save(); ctx.translate(x, y); ctx.scale(face, 1);
+  var c1 = flash ? "#fff" : null;
+  if (type === "bat"){ R(0, -2, 15, 4, c1 || "#b07a3f"); R(13, -3, 4, 6, c1 || "#96622c"); }
+  else if (type === "knife"){ R(0, -1, 4, 3, c1 || "#6b4a2a"); R(4, -2, 10, 3, c1 || "#d9dee6"); }
+  else if (type === "whip"){ ctx.fillStyle = c1 || "#8a5a2a"; ctx.fillRect(0, -1, 20, 2); ctx.fillRect(18, 0, 6, 2); }
+  ctx.restore();
+}
+function drawWeaponGround(w){
+  var sx = Math.round(w.x - G.cam), sy = Math.round(w.z - w.y);
+  shadow(sx, w.z, 12);
+  ctx.save(); ctx.translate(sx, sy - 2);
+  if (w.thrown) ctx.rotate(w.spin);
+  if (w.type === "bat"){ R(-8, -2, 16, 4, "#b07a3f"); R(6, -3, 4, 6, "#96622c"); }
+  else if (w.type === "knife"){ R(-7, -1, 4, 3, "#6b4a2a"); R(-3, -2, 10, 3, "#d9dee6"); }
+  else { ctx.fillStyle = "#8a5a2a"; ctx.fillRect(-9, -1, 15, 2); ctx.fillRect(4, 0, 5, 2); ctx.fillRect(-11, -2, 3, 4); }
+  ctx.restore();
+}
+
+// background: original night street, parallax layers
+function drawBG(){
+  // sky
+  var grd = ctx.createLinearGradient(0, 0, 0, BELT_TOP);
+  grd.addColorStop(0, "#141a35"); grd.addColorStop(1, "#2c2a4a");
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, W, BELT_TOP + 4);
+  R(392, 18, 26, 26, "#e8e4c8"); R(398, 14, 14, 14, "#f4f0d8"); // moon
+  // far skyline (slow parallax)
+  var off1 = Math.floor(G.cam * 0.25);
+  ctx.fillStyle = "#1d2340";
+  for (var i = -1; i < 9; i++){
+    var bx = i * 74 - (off1 % 74), bh = 52 + ((i * 37 + ((off1 / 74)|0) * 13) % 40);
+    ctx.fillRect(bx, BELT_TOP - bh - 26, 62, bh + 26);
+    ctx.fillStyle = "#3d4a7a";
+    for (var wy = 0; wy < 4; wy++) for (var wx = 0; wx < 4; wx++)
+      if ((i * 7 + wy * 3 + wx * 5) % 4 === 0) ctx.fillRect(bx + 6 + wx * 14, BELT_TOP - bh - 18 + wy * 16, 6, 8);
+    ctx.fillStyle = "#1d2340";
+  }
+  // shopfront row (mid parallax)
+  var off2 = Math.floor(G.cam * 0.6);
+  var shops = [
+    { w: 120, c: "#4a2f2a", sign: "茶餐廳", sc: "#ffd94a" },
+    { w: 96,  c: "#2c3a4e", sign: "大藥房", sc: "#7ae0a3" },
+    { w: 110, c: "#3d2c46", sign: "電玩城", sc: "#ff8ac2" },
+    { w: 100, c: "#2e4238", sign: "雲吞麵", sc: "#ffb35c" },
+    { w: 116, c: "#46352a", sign: "唱片行", sc: "#8ad2ff" }
+  ];
+  var sx = -(off2 % 542);
+  var idx = Math.floor(off2 / 542);
+  for (var s = -1; s < 4; s++){
+    var sh = shops[((idx + s) % shops.length + shops.length) % shops.length];
+    var x = sx + s * 118;
+    R(x, 74, 112, BELT_TOP - 74, sh.c);
+    R(x, 74, 112, 4, "#10101c");
+    R(x + 8, 84, 62, 20, "#14141f");
+    TXT(sh.sign, x + 11, 88, 13, sh.sc, "left", true);
+    R(x + 8, 112, 44, BELT_TOP - 112, "#0f0f18");            // doorway
+    R(x + 58, 112, 46, BELT_TOP - 112, "#23202c");           // window
+    R(x + 58, 112, 46, 3, "#3a3648");
+    R(x, BELT_TOP - 6, 112, 6, "#191922");                    // kerb shadow
+  }
+  // belt (road + pavement)
+  R(0, BELT_TOP, W, H - BELT_TOP, "#33323e");
+  R(0, BELT_TOP, W, 5, "#454354");
+  R(0, BELT_BOT + 6, W, H - BELT_BOT - 6, "#26252e");
+  // lane dashes scroll with world
+  ctx.fillStyle = "#5a5870";
+  var dashOff = Math.floor(G.cam) % 46;
+  for (var d = -1; d < 12; d++) ctx.fillRect(d * 46 - dashOff, 226, 24, 3);
+  // lamps tied to world coords (backdrop, above the belt)
+  drawLamps();
+}
+var LAMPS = [700, 1330, 2380];
+function drawLamps(){
+  for (var i=0;i<LAMPS.length;i++){
+    var sx = Math.round(LAMPS[i] - G.cam);
+    if (sx < -30 || sx > W + 30) continue;
+    R(sx, 96, 3, BELT_TOP - 96 + 4, "#20202a"); R(sx - 5, 92, 13, 5, "#ffd94a");
+  }
+}
+// breakable props for the current gate area, drawn on the belt (z-sorted later is overkill; belt-level y draw)
+function drawProp(pr){
+  var sx = Math.round(pr.x - G.cam), gy = Math.round(pr.z);
+  if (sx < -30 || sx > W + 30) return;
+  shadow(sx, gy, 16);
+  if (pr.t === "crate"){
+    R(sx - 9, gy - 15, 18, 15, pr.hp < 3 ? "#7d5a33" : "#6e5230");
+    R(sx - 9, gy - 15, 18, 3, "#86663c"); R(sx - 1, gy - 15, 2, 15, "#59401f");
+    if (pr.hp === 1){ R(sx - 5, gy - 11, 9, 2, "#3a2a12"); }
+  } else {
+    R(sx - 7, gy - 17, 13, 17, pr.hp < 3 ? "#486a52" : "#3d5a44");
+    R(sx - 8, gy - 19, 15, 3, "#2c4433");
+    if (pr.hp === 1){ R(sx - 4, gy - 13, 7, 2, "#22392a"); }
+  }
+}
+function drawFood(q){
+  var sx = Math.round(q.x - G.cam), sy = Math.round(q.z);
+  shadow(sx, q.z, 10);
+  var bob = (G.tick % 50 < 25) ? 0 : 1;
+  // little steamer basket + dumpling
+  R(sx - 6, sy - 5 - bob, 12, 4, "#c9a86a");
+  R(sx - 4, sy - 8 - bob, 8, 3, "#f4ead2");
+  R(sx - 1, sy - 9 - bob, 2, 2, "#e88ca0");
+  TXT(q.label, sx, sy - 20 - bob, 8, "#ffe9a8", "center", true);
+}
+
+function drawHUD(){
+  if (G.phase === "title" || G.phase === "select" || G.phase === "lobby") return;
+  // one HP bar per player (P2 bar second, teal accent)
+  for (var i=0;i<G.players.length;i++){
+    var p = G.players[i], y0 = 8 + i * 24, acc = (i === 0) ? "#ffd94a" : "#39d0c4";
+    R(10, y0, 154, 13, "rgba(0,0,0,0.6)");
+    R(12, y0 + 2, 150, 5, "#3a0d0d");
+    R(12, y0 + 2, 150 * Math.max(0, p.hp / p.maxhp), 5, p.dead ? "#666" : "#e5484d");
+    R(12, y0 + 8, 150, 2, acc);
+    TXT((G.mode === "2P" ? (i + 1) + "P " : "") + HEROES[p.charId].name + (p.dead ? "（倒下）" : ""), 12, y0 + 15, 10, "#fff", "left", true);
+    if (p.weapon) TXT("武器：" + ({bat:"球棒", knife:"小刀", whip:"皮鞭"})[p.weapon.type] + " ×" + p.weapon.dur, 74, y0 + 15, 10, "#ffd94a", "left");
+  }
+  TXT("SCORE " + G.score, W - 12, 8, 11, "#fff", "right", true);
+  TXT("第 " + (G.wave + 1) + " 段", W - 12, 22, 10, "#aab", "right");
+  // boss bar
+  if (G.bossRef && !G.bossRef.removeMe && G.wave === 3 && G.phase !== "clear"){
+    var b = G.bossRef;
+    R(W/2 - 90, H - 18, 180, 9, "rgba(0,0,0,0.6)");
+    R(W/2 - 88, H - 16, 176 * Math.max(0, b.hp / b.maxhp), 5, "#b03ae0");
+    TXT("幫派頭目 · 黑熊", W/2, H - 30, 10, "#e8b6ff", "center", true);
+  }
+  if (G.phase === "go"){
+    var blink = (G.tick % 40) < 26;
+    if (blink) TXT("GO! ▶▶", W - 90, 120, 22, "#ffd94a", "left", true);
+  }
+}
+
+function drawTouch(){
+  if (!touchMode) return;
+  ctx.fillStyle = "rgba(255,255,255,0.10)";
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  // fixed-base joystick + knob (knob follows the held offset)
+  ctx.beginPath(); ctx.arc(JOY_X, JOY_Y, JOY_R, 0, 6.2832); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(JOY_X + joy.dx * 16, JOY_Y + joy.dy * 16, 13, 0, 6.2832);
+  ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.fill();
+  var btns = [["拳", btnAtk], ["腳", btnKick], ["跳", btnJump]];
+  for (var i=0;i<btns.length;i++){
+    var b = btns[i][1];
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 6.2832);
+    ctx.fillStyle = b.on ? "rgba(255,217,74,0.45)" : "rgba(255,255,255,0.12)";
+    ctx.fill(); ctx.stroke();
+    TXT(btns[i][0], b.x, b.y - 8, 14, "#fff", "center", true);
+  }
+}
+var joy = { dx: 0, dy: 0, id: -1 };
+var JOY_X = 62, JOY_Y = 200, JOY_R = 30;
+var btnAtk = { x: 424, y: 210, r: 24, hit: 34, on: false, id: -1 };
+var btnKick = { x: 372, y: 230, r: 22, hit: 32, on: false, id: -1 };
+var btnJump = { x: 448, y: 158, r: 22, hit: 32, on: false, id: -1 };
+var btnPause = { x: 452, y: 52, r: 13, hit: 22 };
+var btnMute = { x: 416, y: 52, r: 13, hit: 22 };
+
+function render(){
+  ctx.save();
+  if (G.shake > 0) ctx.translate(Math.round((G.rng ? 0 : 0)), 0); // shake applied below via render-only jitter
+  drawBG();
+  // draw order: weapons on ground, then props/food/fighters sorted by z
+  var i;
+  for (i=0;i<G.weapons.length;i++) drawWeaponGround(G.weapons[i]);
+  var ents = [];
+  for (i=0;i<G.players.length;i++) if (!G.players[i].removeMe) ents.push({ z: G.players[i].z, f: G.players[i] });
+  for (i=0;i<G.enemies.length;i++) if (!G.enemies[i].removeMe) ents.push({ z: G.enemies[i].z, f: G.enemies[i] });
+  for (i=0;i<G.props.length;i++) if (!G.props[i].dead) ents.push({ z: G.props[i].z, pr: G.props[i] });
+  for (i=0;i<G.parts.length;i++) if (G.parts[i].food) ents.push({ z: G.parts[i].z, food: G.parts[i] });
+  ents.sort(function(a,b){ return a.z - b.z; });
+  for (i=0;i<ents.length;i++){
+    var en = ents[i];
+    if (en.f) drawFighter(en.f);
+    else if (en.pr) drawProp(en.pr);
+    else if (en.food) drawFood(en.food);
+  }
+  // particles (dust)
+  for (i=0;i<G.parts.length;i++){
+    var q = G.parts[i];
+    if (q.food) continue;
+    ctx.fillStyle = "rgba(200,190,170," + (0.5 * (1 - q.t / q.life)).toFixed(2) + ")";
+    ctx.fillRect(Math.round(q.x - G.cam), Math.round(q.z - q.y), q.s, q.s);
+  }
+  // floaters (+25 / 復活！)
+  for (i=0;i<G.floats.length;i++){
+    var fl = G.floats[i];
+    var a = 1 - fl.t / fl.life;
+    ctx.globalAlpha = Math.max(0, a);
+    TXT(fl.text, Math.round(fl.x - G.cam), Math.round(fl.z - 46 - fl.t * 18), 11, fl.color, "center", true);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  drawHUD();
+  // online session indicators (non-blocking)
+  if (NET && NET.active && !NET.broken){
+    if (NET.stalled) TXT("等緊對方…", W/2, 46, 12, "#ffd94a", "center", true);
+    if (NET.desync) TXT("同步出現偏差", W - 12, 40, 10, "#ff9a9a", "right");
+  }
+  // top-right small buttons (pause / mute) — kept clear of the score text
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.beginPath(); ctx.arc(btnPause.x, btnPause.y, btnPause.r, 0, 6.2832); ctx.fill();
+  TXT(paused ? "▶" : "Ⅱ", btnPause.x, btnPause.y - 6, 11, "#fff", "center", true);
+  ctx.beginPath(); ctx.arc(btnMute.x, btnMute.y, btnMute.r, 0, 6.2832); ctx.fill();
+  TXT(muted ? "✕" : "♪", btnMute.x, btnMute.y - 6, 11, "#fff", "center", true);
+
+  if (G.phase === "title"){
+    R(0, 0, W, H, "rgba(5,5,16,0.72)");
+    TXT("雙龍巷戰", W/2, 62, 40, "#ffd94a", "center", true);
+    TXT("DRAGON ALLEY", W/2, 112, 13, "#8ad2ff", "center", true);
+    TXT("一個人，守住呢條巷。", W/2, 142, 12, "#ddd", "center");
+    TXT("㩒 任意掣 / 點畫面 開始", W/2, 178, 13, ((G.tick % 70) < 44) ? "#fff" : "#888", "center", true);
+    TXT("拳腳連擊 · 執武器 · 摔撻敵人 · 打倒幫派頭目", W/2, 208, 11, "#aab", "center");
+  } else if (G.phase === "select"){
+    R(0, 0, W, H, "rgba(5,5,16,0.78)");
+    TXT("揀模式 · 角色", W/2, 24, 18, "#ffd94a", "center", true);
+    var rows = [
+      { label: "1P — 阿龍（均衡）", id: "1PL" },
+      { label: "1P — 阿虎（快攻）", id: "1PF" },
+      { label: "2P 協力 — 阿龍 ＋ 阿虎", id: "2P" },
+      { label: "線上雙打 — 開房 / 入房", id: "NET" }
+    ];
+    for (var ri=0;ri<rows.length;ri++){
+      var ry = SEL_ROWS_Y[ri], sel = (selIdx === ri);
+      if (sel) R(W/2 - 130, ry - 5, 260, 26, "rgba(255,217,74,0.18)");
+      TXT((sel ? "▶ " : "") + rows[ri].label, W/2, ry, 15, sel ? "#ffd94a" : "#ccc", "center", true);
+    }
+    TXT("揀好之後㩒 拳 / J / Enter 開始", W/2, 206, 11, "#fff", "center");
+    TXT("電腦：↑↓ 或 W/S 選擇 · 滑鼠/手機：點選項，再點同一個開始", W/2, 222, 10, "#aab", "center");
+    TXT("本地 2P：P2 用鍵盤 TFGH 行 · R 拳 · Y 腳 · U 跳", W/2, 236, 10, "#aab", "center");
+    TXT("線上雙打：主機開房出代碼，朋友入代碼加入（P2P 直連）", W/2, 250, 10, "#8ad2ff", "center");
+  } else if (G.phase === "lobby"){
+    R(0, 0, W, H, "rgba(5,5,16,0.82)");
+    TXT("線上雙打", W/2, 34, 22, "#ffd94a", "center", true);
+    if (LOBBY.state === "menu"){
+      TXT("主機 = 1P 阿龍 · 客人 = 2P 阿虎 · P2P 直連唔經遊戲伺服器", W/2, 66, 11, "#aab", "center");
+      var lrows = ["開房做主機（出代碼俾朋友）", "輸入代碼入房", "返回"];
+      for (var li=0;li<3;li++){
+        var ly = LOBBY_ROWS_Y[li], lsel = (LOBBY.idx === li);
+        if (lsel) R(W/2 - 150, ly - 5, 300, 26, "rgba(255,217,74,0.18)");
+        TXT((lsel ? "▶ " : "") + lrows[li], W/2, ly, 14, lsel ? "#ffd94a" : "#ccc", "center", true);
+      }
+      TXT("↑↓ 選擇 · Enter / 㩒兩下同一行 確認 · Esc 返回", W/2, 206, 10, "#aab", "center");
+      TXT(QS_NETTEST ? "本機測試模式（nettest 通道）" : "信令：PeerJS 雲端 · 玩法只傳輸入，逐格同步", W/2, 222, 10, "#8ad2ff", "center");
+      if (LOBBY.status) TXT(LOBBY.status, W/2, 244, 10, "#ff9a9a", "center");
+    } else if (LOBBY.state === "hostWait"){
+      TXT("將呢個代碼俾你朋友：", W/2, 74, 13, "#ddd", "center");
+      TXT(LOBBY.code.split("").join(" "), W/2, 100, 44, "#ffd94a", "center", true);
+      TXT(LOBBY.status || "等朋友入房…", W/2, 166, 12, "#8ad2ff", "center");
+      TXT("Esc 取消返回", W/2, 206, 10, "#aab", "center");
+    } else if (LOBBY.state === "typing"){
+      TXT("輸入朋友俾你嘅房間代碼：", W/2, 74, 13, "#ddd", "center");
+      TXT((LOBBY.typed || "") + "_", W/2, 104, 34, "#ffd94a", "center", true);
+      if (LOBBY.status) TXT(LOBBY.status, W/2, 158, 11, "#ff9a9a", "center");
+      TXT("打字輸入 · Enter 加入 · Esc 返回", W/2, 206, 10, "#aab", "center");
+    } else if (LOBBY.state === "joining"){
+      TXT("連接緊…", W/2, 92, 18, "#fff", "center", true);
+      TXT("房間：" + LOBBY.code, W/2, 126, 13, "#ffd94a", "center");
+      if (LOBBY.status) TXT(LOBBY.status, W/2, 152, 11, "#8ad2ff", "center");
+      TXT("Esc 取消", W/2, 206, 10, "#aab", "center");
+    }
+  } else if (G.phase === "clear"){
+    R(0, 0, W, H, "rgba(5,16,5,0.66)");
+    TXT("過關！ STAGE CLEAR", W/2, 92, 26, "#7ae0a3", "center", true);
+    TXT("分數 SCORE：" + G.score, W/2, 136, 15, "#fff", "center", true);
+    TXT("時間 TIME：" + Math.floor(G.time) + " 秒", W/2, 158, 13, "#ddd", "center");
+    TXT("㩒任意掣再玩", W/2, 196, 12, "#aab", "center");
+  } else if (G.phase === "over"){
+    R(0, 0, W, H, "rgba(16,5,5,0.7)");
+    TXT("GAME OVER", W/2, 96, 30, "#e5484d", "center", true);
+    TXT("分數 SCORE：" + G.score, W/2, 146, 14, "#fff", "center", true);
+    TXT("㩒任意掣重新開始", W/2, 190, 12, "#aab", "center");
+  }
+  if (paused && G.phase !== "title" && !(NET && NET.active)){
+    R(0, 0, W, H, "rgba(0,0,0,0.45)");
+    TXT("暫停 PAUSED", W/2, 118, 20, "#fff", "center", true);
+  }
+  if (NET && NET.active && NET.broken){
+    R(0, 0, W, H, "rgba(16,5,5,0.78)");
+    TXT("對方斷咗線", W/2, 104, 24, "#e5484d", "center", true);
+    TXT("㩒任意動作掣返回揀人畫面", W/2, 146, 12, "#ddd", "center");
+  }
+  drawTouch();
+}
+
+// screen shake: apply as canvas transform offset in frame loop using a render-only rng-free jitter
+var shakeX = 0, shakeY = 0;
+
+// deterministic bot driver for balance tests (set by __game.useBot):
+// replaces P1's input channel with simple approach/attack logic each step.
+var botOn = false;
+function botDrive(){
+  var q = G.players[0], pin = pinForTest(0);
+  if (q.dead){ pin.set({ up:false, down:false, left:false, right:false }); return; }
+  var tgt = null, bd = 1e9;
+  for (var i=0;i<G.enemies.length;i++){
+    var e = G.enemies[i];
+    if (e.dead || e.removeMe) continue;
+    var d = Math.abs(e.x - q.x) + Math.abs(e.z - q.z);
+    if (d < bd){ bd = d; tgt = e; }
+  }
+  if (q.hp <= 60){
+    for (var j=0;j<G.parts.length;j++) if (G.parts[j].food){ tgt = G.parts[j]; break; }
+  }
+  var lv = { up:false, down:false, left:false, right:false };
+  if (tgt){
+    var dx = tgt.x - q.x, dz = tgt.z - q.z;
+    if (!tgt.food && Math.abs(dx) <= 15 && Math.abs(dz) <= 7){
+      if (G.tick % 17 === 0) pin.set({ punchP: true });
+      else if (G.tick % 23 === 0) pin.set({ kickP: true });
+    } else {
+      if (dx > 4) lv.right = true; else if (dx < -4) lv.left = true;
+      if (dz > 3) lv.down = true; else if (dz < -3) lv.up = true;
+    }
+  } else if (G.phase === "go"){ lv.right = true; }
+  pin.set(lv);
+}
+
+// start-flow input: a press on the title screen goes to character select;
+// a second, separate press (punch/jump button or Enter/J) confirms.
+// Kept OUT of the gameplay sim: UI phases advance on rendered frames.
+function pressTrack(){
+  var lv = input.punch || input.kick || input.jump;
+  if (lv && !pressTrack.prev){
+    if (G){
+      // online session: a disconnect, or any press on the clear/over
+      // screens, tears the session down back to select — a local-only
+      // restart would instantly desync the two peers.
+      if (NET && NET.active && (NET.broken || G.phase === "clear" || G.phase === "over")) netExitToSelect();
+      else if (G.phase === "title") G.phase = "select";
+      else if (G.phase === "select"){ if (pressTrack.armed) selConfirm(); }
+      else if (G.phase === "clear" || G.phase === "over") input.startP = true;
+    }
+    pressTrack.armed = true;
+  }
+  if (!lv) pressTrack.armed = true;
+  pressTrack.prev = lv;
+}
+pressTrack.prev = false;
+pressTrack.armed = true;
+
+// ---------- online: lobby, transport, lockstep session ----------
+// Transport interface: NET.transport = { send(obj), onmessage, close() }.
+// Adapters: PeerJS cloud (default) and a BroadcastChannel loopback used
+// only when the URL has ?nettest=1 (two pages, one browser — test rig).
+// Messages are plain JSON-able objects:
+//   hello {code} · start {seed} · input {rec} · hash {tick, h} ·
+//   reject {} · bye {}
+var PEER_PREFIX = "dragon-alley-matt-";
+var CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+var LOBBY = { state: "menu", idx: 0, typed: "", code: "", status: "" };
+var LOBBY_ROWS_Y = [108, 140, 172];
+var SEL_ROWS_Y = [84, 116, 148, 180];
+
+function peerAvailable(){ return typeof window !== "undefined" && !!window.Peer; }
+function netGenCode(){
+  var s = "";
+  for (var i=0;i<6;i++) s += CODE_ALPHABET.charAt(Math.floor(Math.random() * CODE_ALPHABET.length));
+  return s;
+}
+function newNetSession(role){
+  return { role: role, myIdx: role === "host" ? 0 : 1, remoteIdx: role === "host" ? 1 : 0,
+    active: false, code: "", seed: 0, transport: null, peer: null, conn: null, bc: null,
+    recs: [{}, {}], nextTick: INPUT_DELAY, stallFrames: 0, stalled: false,
+    desync: false, broken: false, hashMine: {}, hashTheirs: {}, retry: 0 };
+}
+function emptyRec(t){
+  return { t: t, l: { up:false, down:false, left:false, right:false },
+           p: { punch:false, kick:false, jump:false } };
+}
+
+// ----- lobby UI state -----
+function enterLobby(){
+  G.phase = "lobby";
+  LOBBY.state = "menu";
+  LOBBY.idx = (QS_NETTEST && QS_ROLE === "guest") ? 1 : 0;
+  LOBBY.typed = ""; LOBBY.status = "";
+  if (!QS_NETTEST && !peerAvailable()) LOBBY.status = "連線組件未載入，線上雙打暫時用唔到（本地模式不受影響）";
+}
+function lobbyConfirm(){
+  if (LOBBY.state !== "menu") return;
+  if (LOBBY.idx === 0) netHostStart();
+  else if (LOBBY.idx === 1){
+    LOBBY.state = "typing"; LOBBY.status = "";
+    if (touchMode){
+      var v = null;
+      try { v = window.prompt("輸入房間代碼（6 個字）", LOBBY.typed || ""); } catch(e){}
+      if (v !== null && v !== undefined){
+        LOBBY.typed = ("" + v).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+        netGuestJoin();
+      } else LOBBY.state = "menu";
+    }
+  }
+  else netExitToSelect();
+}
+function lobbyBack(){
+  if (LOBBY.state === "typing" && !NET){ LOBBY.state = "menu"; LOBBY.status = ""; }
+  else netExitToSelect();
+}
+function lobbyKey(ev){
+  var c = ev.code;
+  if (LOBBY.state === "typing"){
+    if (c === "Escape") lobbyBack();
+    else if (c === "Enter") netGuestJoin();
+    else if (c === "Backspace") LOBBY.typed = LOBBY.typed.slice(0, -1);
+    else if (/^Key[A-Z]$/.test(c)){ if (LOBBY.typed.length < 6) LOBBY.typed += c.slice(3); }
+    else if (/^Digit[0-9]$/.test(c)){ if (LOBBY.typed.length < 6) LOBBY.typed += c.slice(5); }
+    return;
+  }
+  if (c === "Escape"){ lobbyBack(); return; }
+  if (LOBBY.state === "menu"){
+    if (c === "ArrowUp" || c === "KeyW"){ LOBBY.idx = (LOBBY.idx + 2) % 3; SFX.swing(); }
+    else if (c === "ArrowDown" || c === "KeyS"){ LOBBY.idx = (LOBBY.idx + 1) % 3; SFX.swing(); }
+    else if (c === "Enter" || c === "KeyJ" || c === "Space") lobbyConfirm();
+  }
+  // hostWait / joining: only Esc (handled above)
+}
+function lobbyPointer(g){
+  if (LOBBY.state === "menu"){
+    var hit = -1;
+    for (var i=0;i<3;i++){ if (Math.abs(g.y - LOBBY_ROWS_Y[i]) <= 16){ hit = i; break; } }
+    if (hit >= 0){
+      if (LOBBY.idx === hit) lobbyConfirm();
+      else { LOBBY.idx = hit; SFX.swing(); }
+    }
+    return;
+  }
+  if (LOBBY.state === "typing"){
+    if (g.y >= 200) netGuestJoin();
+    else if (g.y <= 60) lobbyBack();
+    return;
+  }
+  if ((LOBBY.state === "hostWait" || LOBBY.state === "joining") && g.y <= 60) lobbyBack();
+}
+
+// ----- transport adapters -----
+function netAttachBC(sess){
+  var bc = new BroadcastChannel("dragon-alley-nettest");
+  sess.bc = bc;
+  sess.transport = {
+    send: function(obj){ try { bc.postMessage({ from: sess.role, obj: obj }); } catch(e){} },
+    onmessage: null,
+    close: function(){ try { bc.close(); } catch(e){} }
+  };
+  sess.transport.onmessage = function(obj){ if (NET === sess) netHandleMessage(obj); };
+  bc.onmessage = function(ev){
+    var m = ev.data;
+    if (!m || m.from === sess.role || !m.obj) return;
+    sess.transport.onmessage(m.obj);
+  };
+}
+function netPeerTransport(sess, conn){
+  sess.transport = {
+    send: function(obj){ if (conn.open) conn.send(obj); },
+    onmessage: null,
+    close: function(){ try { conn.close(); } catch(e){} }
+  };
+  sess.transport.onmessage = function(obj){ if (NET === sess) netHandleMessage(obj); };
+}
+function netCloseTransport(){
+  if (!NET) return;
+  if (NET.transport){ try { NET.transport.close(); } catch(e){} NET.transport = null; }
+  if (NET.conn){ try { NET.conn.close(); } catch(e){} NET.conn = null; }
+  if (NET.peer){ try { NET.peer.destroy(); } catch(e){} NET.peer = null; }
+  if (NET.bc){ try { NET.bc.close(); } catch(e){} NET.bc = null; }
+}
+
+// ----- session setup: host -----
+function netHostStart(){
+  NET = newNetSession("host");
+  var sess = NET;
+  NET.code = netGenCode();
+  LOBBY.code = NET.code;
+  LOBBY.state = "hostWait"; LOBBY.status = "開房中…";
+  if (QS_NETTEST){
+    netAttachBC(sess);
+    LOBBY.status = "等朋友入房…（本機測試模式）";
+    return;
+  }
+  if (!peerAvailable()){
+    LOBBY.state = "menu"; LOBBY.status = "連線組件載入失敗，線上雙打用唔到（本地模式不受影響）";
+    NET = null;
+    return;
+  }
+  netPeerHostOpen(sess);
+}
+function netPeerHostOpen(sess){
+  if (sess.peer){ try { sess.peer.destroy(); } catch(e){} sess.peer = null; }
+  var peer;
+  try { peer = new window.Peer(PEER_PREFIX + sess.code); } catch(e){
+    LOBBY.state = "menu"; LOBBY.status = "開房失敗，再試下"; netCloseTransport(); NET = null; return;
+  }
+  sess.peer = peer;
+  peer.on("open", function(){ if (NET === sess) LOBBY.status = "等朋友入房…"; });
+  peer.on("connection", function(conn){
+    if (NET !== sess) return;
+    if (sess.conn){ try { conn.close(); } catch(e){} return; }
+    sess.conn = conn;
+    netPeerTransport(sess, conn);
+    conn.on("data", function(d){ if (sess.transport) sess.transport.onmessage(d); });
+    conn.on("close", function(){ netPeerGone(); });
+  });
+  peer.on("error", function(err){
+    if (NET !== sess) return;
+    var t = (err && err.type) ? err.type : "";
+    if (t === "unavailable-id" && ++sess.retry <= 3){
+      sess.code = netGenCode(); LOBBY.code = sess.code;
+      netPeerHostOpen(sess);
+    } else {
+      LOBBY.state = "menu"; LOBBY.status = "開房失敗（" + t + "），再試下";
+      netCloseTransport(); NET = null;
+    }
+  });
+}
+
+// ----- session setup: guest -----
+function netGuestJoin(){
+  var code = (LOBBY.typed || "").toUpperCase();
+  if (code.length !== 6){ LOBBY.status = "代碼要 6 個字"; return; }
+  NET = newNetSession("guest");
+  var sess = NET;
+  sess.code = code; LOBBY.code = code;
+  LOBBY.state = "joining"; LOBBY.status = "連接緊…";
+  if (QS_NETTEST){
+    netAttachBC(sess);
+    sess.transport.send({ type: "hello", code: code });
+    LOBBY.status = "等主機回應…（本機測試模式）";
+    return;
+  }
+  if (!peerAvailable()){
+    LOBBY.state = "menu"; LOBBY.status = "連線組件載入失敗，線上雙打用唔到（本地模式不受影響）";
+    NET = null;
+    return;
+  }
+  var peer;
+  try { peer = new window.Peer(); } catch(e){
+    LOBBY.state = "menu"; LOBBY.status = "連接失敗，再試下"; NET = null; return;
+  }
+  sess.peer = peer;
+  peer.on("open", function(){
+    if (NET !== sess) return;
+    var conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    sess.conn = conn;
+    netPeerTransport(sess, conn);
+    conn.on("open", function(){
+      if (NET !== sess) return;
+      sess.transport.send({ type: "hello", code: code });
+      LOBBY.status = "已連接，等主機開始…";
+    });
+    conn.on("data", function(d){ if (sess.transport) sess.transport.onmessage(d); });
+    conn.on("close", function(){ netPeerGone(); });
+  });
+  peer.on("error", function(err){
+    if (NET !== sess) return;
+    var t = (err && err.type) ? err.type : "";
+    netCloseTransport(); NET = null;
+    if (t === "peer-unavailable"){ LOBBY.state = "typing"; LOBBY.status = "房間唔存在，檢查代碼再試"; }
+    else { LOBBY.state = "menu"; LOBBY.status = "連接失敗（" + t + "），再試下"; }
+  });
+}
+
+// ----- message handling / game start -----
+function netHandleMessage(msg){
+  if (!NET || !msg || !msg.type) return;
+  if (msg.type === "hello"){
+    if (NET.role !== "host" || NET.active || LOBBY.state !== "hostWait") return;
+    if (msg.code && msg.code !== NET.code){
+      NET.transport.send({ type: "reject" });
+      return;
+    }
+    netHostBegin();
+  }
+  else if (msg.type === "reject"){
+    if (NET.role === "guest" && LOBBY.state === "joining"){
+      netCloseTransport(); NET = null;
+      LOBBY.state = "typing"; LOBBY.status = "代碼唔啱，再輸入過";
+    }
+  }
+  else if (msg.type === "start"){
+    if (NET.role === "guest" && !NET.active && typeof msg.seed === "number") netStartGame(msg.seed);
+  }
+  else if (msg.type === "input"){
+    if (NET.active && msg.rec && typeof msg.rec.t === "number"){
+      if (!NET.recs[NET.remoteIdx][msg.rec.t]) NET.recs[NET.remoteIdx][msg.rec.t] = msg.rec;
+    }
+  }
+  else if (msg.type === "hash"){
+    NET.hashTheirs[msg.tick] = msg.h;
+    netCheckHash(msg.tick);
+  }
+  else if (msg.type === "bye"){ netPeerGone(); }
+}
+function netHostBegin(){
+  // the session seed is generated ONCE here, outside the sim (wall clock
+  // is allowed for this), and transmitted to the guest — the sim itself
+  // only ever sees the agreed seed.
+  var seed = ((Date.now() % 1000000007) ^ ((performance.now() * 1000) >>> 0) ^ 0x5eed1234) >>> 0;
+  if (!seed) seed = 20261110;
+  NET.seed = seed;
+  NET.transport.send({ type: "start", seed: seed });
+  netStartGame(seed);
+}
+function netStartGame(seed){
+  NET.active = true;
+  NET.seed = seed;
+  NET.recs = [{}, {}];
+  for (var t=0;t<INPUT_DELAY;t++){ NET.recs[0][t] = emptyRec(t); NET.recs[1][t] = emptyRec(t); }
+  NET.nextTick = INPUT_DELAY;
+  NET.stallFrames = 0; NET.stalled = false; NET.desync = false; NET.broken = false;
+  NET.hashMine = {}; NET.hashTheirs = {};
+  stagePins = [makeStagePin(), makeStagePin()];
+  G = newGame(seed, { mode: "2P", chars: ["ahLong", "ahFu"] });
+  G.phase = "fight";
+  startWave(0);
+  resetInputState(true);
+  SFX.go();
+}
+function netPeerGone(){
+  if (!NET) return;
+  if (NET.active){ NET.broken = true; return; }
+  if (!G || G.phase !== "lobby") return;
+  if (NET.role === "host" && LOBBY.state === "hostWait"){
+    NET.conn = null;
+    LOBBY.status = "對方離開咗，繼續等朋友入房…";
+  } else if (NET.role === "guest" && LOBBY.state === "joining"){
+    netCloseTransport(); NET = null;
+    LOBBY.state = "menu"; LOBBY.status = "主機斷咗線";
+  }
+}
+function netExitToSelect(){
+  if (NET && NET.transport){ try { NET.transport.send({ type: "bye" }); } catch(e){} }
+  netCloseTransport();
+  NET = null;
+  stagePins = [null, null];
+  paused = false;
+  LOBBY.state = "menu"; LOBBY.typed = ""; LOBBY.status = "";
+  G = newGame(fixedSeed);
+  G.phase = "select";
+  selApply();
+  resetInputState();
+}
+
+// ----- lockstep core -----
+// Once per rendered frame: stamp the local live channel into records for
+// upcoming ticks and send them. Presses are read-and-cleared from the live
+// edgeBuf exactly once, onto the first record produced this frame.
+function netSample(){
+  if (!NET || !NET.active || !NET.transport) return;
+  if (G.phase !== "fight" && G.phase !== "go") return;
+  var target = G.tick + INPUT_DELAY;
+  if (NET.nextTick > target) return;
+  var capP = edgeBuf.punch > 0, capK = edgeBuf.kick > 0, capJ = edgeBuf.jump > 0;
+  edgeBuf.punch = 0; edgeBuf.kick = 0; edgeBuf.jump = 0;
+  var first = true;
+  while (NET.nextTick <= target){
+    var rec = { t: NET.nextTick,
+      l: { up: !!input.up, down: !!input.down, left: !!input.left, right: !!input.right },
+      p: { punch: first && capP, kick: first && capK, jump: first && capJ } };
+    NET.recs[NET.myIdx][rec.t] = rec;
+    NET.transport.send({ type: "input", rec: rec });
+    NET.nextTick++;
+    first = false;
+  }
+}
+function netCanStep(){
+  return !!(NET.recs[0][G.tick] && NET.recs[1][G.tick]);
+}
+function netApplyTick(t){
+  for (var idx=0;idx<2;idx++){
+    var rec = NET.recs[idx][t];
+    if (!rec) continue;
+    var pin = stagePins[idx] || (stagePins[idx] = makeStagePin());
+    pin.lv.up = !!rec.l.up; pin.lv.down = !!rec.l.down;
+    pin.lv.left = !!rec.l.left; pin.lv.right = !!rec.l.right;
+    if (rec.p.punch) pin.buf.punch = BUF_TICKS;
+    if (rec.p.kick) pin.buf.kick = BUF_TICKS;
+    if (rec.p.jump) pin.buf.jump = BUF_TICKS;
+    delete NET.recs[idx][t];
+  }
+}
+// desync guard: a cheap hash over the lockstep-critical state, compared
+// every 600 ticks. A mismatch only warns (v1) — play continues.
+function netHash(){
+  var s = G.tick + "|" + G.score + "|" + G.enemies.length;
+  for (var i=0;i<G.players.length;i++){
+    var q = G.players[i];
+    s += "|" + Math.round(q.x * 10) + "," + Math.round(q.z * 10) + "," + q.hp + "," + q.state;
+  }
+  var h = 5381;
+  for (var j=0;j<s.length;j++) h = ((h * 33) ^ s.charCodeAt(j)) >>> 0;
+  return h.toString(16);
+}
+function netCheckHash(t){
+  if (!NET) return;
+  var a = NET.hashMine[t], b = NET.hashTheirs[t];
+  if (a !== undefined && b !== undefined && a !== b) NET.desync = true;
+}
+function netAfterStep(){
+  if (!NET || !NET.active) return;
+  if (G.tick > 0 && G.tick % 600 === 0 && NET.hashMine[G.tick] === undefined){
+    var h = netHash();
+    NET.hashMine[G.tick] = h;
+    NET.transport.send({ type: "hash", tick: G.tick, h: h });
+    netCheckHash(G.tick);
+  }
+}
+
+// ---------- character select ----------
+// selIdx: 0 = 1P 阿龍， 1 = 1P 阿虎（快攻）, 2 = 2P 協力， 3 = 線上雙打
+var selIdx = 0;
+var uiStartFlag = false;
+function selApply(){
+  if (!G) return;
+  if (selIdx === 2){ G.selMode = "2P"; G.selChar = 0; }
+  else if (selIdx === 3){ G.selMode = "NET"; G.selChar = 0; }
+  else { G.selMode = "1P"; G.selChar = selIdx; }
+}
+function selMove(d){
+  selIdx = (selIdx + d + 4) % 4;
+  selApply();
+  SFX.swing();
+}
+function selConfirm(){
+  selApply();
+  if (selIdx === 3){ enterLobby(); return; }
+  input.startP = true;
+  uiStartFlag = true; // for title/clear/over phases, which simStep starts directly
+}
+function selectStep(){
+  // consume this step's derived action edges as menu confirmations
+  if (input.startP){ /* a confirm already latched startP below */ }
+  else if (input.punchP || input.jumpP || uiStartFlag){ uiStartFlag = false; selConfirm(); }
+  input.punchP = false; input.jumpP = false; input.kickP = false;
+  if (input.startP){
+    var seed3 = fixedSeed;
+    G = newGame(seed3, { mode: G.selMode, chars: G.selMode === "2P" ? ["ahLong", "ahFu"] : [G.selChar === 1 ? "ahFu" : "ahLong"] });
+    G.phase = "fight";
+    startWave(0);
+    SFX.go();
+    input.startP = false;
+  }
+}
+
+// ---------- input: keyboard ----------
+var paused = false;
+var KEYMAP = { ArrowLeft:"left", ArrowRight:"right", ArrowUp:"up", ArrowDown:"down",
+  KeyA:"left", KeyD:"right", KeyW:"up", KeyS:"down" };
+var KEYMAP2 = { KeyT:"up", KeyG:"down", KeyF:"left", KeyH:"right" };
+function p2pin(){ return getPin({ idx: 1 }); }
+window.addEventListener("keydown", function(ev){
+  audioInit();
+  // the lobby branch comes FIRST: code entry types letters, and the P key
+  // is a valid code character — the pause shortcut below would swallow it.
+  if (G && G.phase === "lobby"){ lobbyKey(ev); ev.preventDefault(); return; }
+  // P is a no-op in net games (pausing one peer would desync the
+  // lockstep); Esc leaves a dead net session.
+  if (ev.code === "KeyP"){ if (!(NET && NET.active)) paused = !paused; return; }
+  if (ev.code === "Escape" && NET && NET.active && NET.broken){ netExitToSelect(); ev.preventDefault(); return; }
+  if (G && G.phase === "select"){
+    if (ev.code === "ArrowUp" || ev.code === "KeyW") selMove(-1);
+    else if (ev.code === "ArrowDown" || ev.code === "KeyS") selMove(1);
+    else if (ev.code === "KeyJ" || ev.code === "Enter" || ev.code === "Space") selConfirm();
+    ev.preventDefault();
+    return;
+  }
+  if (G && G.phase === "title"){
+    if (ev.code === "KeyJ" || ev.code === "Enter" || ev.code === "Space" || ev.code === "KeyK" || ev.code === "KeyL"){ G.phase = "select"; }
+    ev.preventDefault();
+    return;
+  }
+  // in net games the local TFGH/R/Y/U channel must NOT feed the sim: each
+  // peer drives its own hero with the P1 controls; the remote hero is fed
+  // only by lockstep records applied to the staging pins.
+  if (!(NET && NET.active) && KEYMAP2[ev.code]){ var pin2 = p2pin(); pin2.lv[KEYMAP2[ev.code]] = true; ev.preventDefault(); }
+  else if (!(NET && NET.active) && ev.code === "KeyR"){ var q2 = p2pin(); if (!q2.lv.punch && !ev.repeat) q2.buf.punch = BUF_TICKS; q2.lv.punch = true; if (G && (G.phase === "clear" || G.phase === "over")) uiStartFlag = true; ev.preventDefault(); }
+  else if (!(NET && NET.active) && ev.code === "KeyY"){ var q3 = p2pin(); if (!q3.lv.kick && !ev.repeat) q3.buf.kick = BUF_TICKS; q3.lv.kick = true; ev.preventDefault(); }
+  else if (!(NET && NET.active) && ev.code === "KeyU"){ var q4 = p2pin(); if (!q4.lv.jump && !ev.repeat) q4.buf.jump = BUF_TICKS; q4.lv.jump = true; ev.preventDefault(); }
+  else if (KEYMAP[ev.code]){ input[KEYMAP[ev.code]] = true; ev.preventDefault(); }
+  else if (ev.code === "KeyJ"){ if (!input.punch && !ev.repeat) pressEdge("punch"); input.punch = true; anyStart(); ev.preventDefault(); }
+  else if (ev.code === "KeyK"){ if (!input.kick && !ev.repeat) pressEdge("kick"); input.kick = true; anyStart(); ev.preventDefault(); }
+  else if (ev.code === "KeyL" || ev.code === "Space"){ if (!input.jump && !ev.repeat) pressEdge("jump"); input.jump = true; anyStart(); ev.preventDefault(); }
+  else anyStart();
+});
+window.addEventListener("keyup", function(ev){
+  if (!(NET && NET.active) && KEYMAP2[ev.code]){ p2pin().lv[KEYMAP2[ev.code]] = false; }
+  else if (!(NET && NET.active) && ev.code === "KeyR") p2pin().lv.punch = false;
+  else if (!(NET && NET.active) && ev.code === "KeyY") p2pin().lv.kick = false;
+  else if (!(NET && NET.active) && ev.code === "KeyU") p2pin().lv.jump = false;
+  else if (KEYMAP[ev.code]) input[KEYMAP[ev.code]] = false;
+  else if (ev.code === "KeyJ") input.punch = false;
+  else if (ev.code === "KeyK") input.kick = false;
+  else if (ev.code === "KeyL" || ev.code === "Space") input.jump = false;
+});
+function anyStart(){
+  // title/select/clear/over transitions are owned by pressTrack() (frame loop)
+}
+
+// ---------- input: pointer (touch + mouse, multi-touch via pointerId) ----------
+// Fixed-base joystick at JOY_X/JOY_Y: direction = offset of the stick
+// pointer from the base centre, so press-and-hold toward a direction
+// walks immediately — no precise drag needed. Action buttons are
+// momentary: pointerdown arms ONE buffered edge (pressEdge), holding
+// never re-fires.
+var touchMode = false;
+if (window.matchMedia && matchMedia("(pointer: coarse)").matches) touchMode = true;
+var ptrRole = {};   // pointerId -> "joy" | "atk" | "kick" | "jump" | "ui" | "start"
+function toGame(ev){
+  var r = cv.getBoundingClientRect();
+  return { x: (ev.clientX - r.left) * W / r.width, y: (ev.clientY - r.top) * H / r.height };
+}
+function inBtn(g, b){ var dx = g.x - b.x, dy = g.y - b.y; return dx*dx + dy*dy < b.hit * b.hit; }
+function joyApply(g){
+  var dx = (g.x - JOY_X) / 26, dy = (g.y - JOY_Y) / 26;
+  var m = Math.sqrt(dx*dx + dy*dy); if (m > 1){ dx /= m; dy /= m; }
+  if (Math.sqrt((g.x - JOY_X) * (g.x - JOY_X) + (g.y - JOY_Y) * (g.y - JOY_Y)) < 7){ dx = 0; dy = 0; }
+  joy.dx = dx; joy.dy = dy;
+  input.left = dx < -0.35; input.right = dx > 0.35;
+  input.up = dy < -0.4; input.down = dy > 0.4;
+}
+function joyClear(){
+  joy.id = -1; joy.dx = 0; joy.dy = 0;
+  input.left = input.right = input.up = input.down = false;
+}
+cv.addEventListener("pointerdown", function(ev){
+  ev.preventDefault(); audioInit();
+  if (ev.pointerType === "touch" || ev.pointerType === "pen") touchMode = true;
+  try { cv.setPointerCapture(ev.pointerId); } catch(e){}
+  var g = toGame(ev), id = ev.pointerId;
+  if (G && G.phase === "title"){ G.phase = "select"; ptrRole[id] = "ui"; return; }
+  if (G && G.phase === "select"){
+    // menu: clicking/tapping an option row selects THAT row; clicking the
+    // already-selected row (or the area below the rows) confirms. (The
+    // v3.1 fix: the confirm split must sit BELOW the last row, or clicks
+    // on that row confirm the wrong option — 2P was unreachable by mouse.)
+    var rowHit = -1;
+    for (var rj=0;rj<4;rj++){ if (Math.abs(g.y - SEL_ROWS_Y[rj]) <= 16){ rowHit = rj; break; } }
+    if (rowHit >= 0){
+      if (selIdx === rowHit) selConfirm();
+      else { selIdx = rowHit; selApply(); SFX.swing(); }
+    }
+    else if (g.y >= 200) selConfirm();
+    else selMove(1);
+    ptrRole[id] = "ui";
+    return;
+  }
+  if (G && G.phase === "lobby"){ lobbyPointer(g); ptrRole[id] = "ui"; return; }
+  if (inBtn(g, btnPause)){ if (!(NET && NET.active)) paused = !paused; ptrRole[id] = "ui"; }
+  else if (inBtn(g, btnMute)){ muted = !muted; ptrRole[id] = "ui"; }
+  else if (inBtn(g, btnAtk)){ btnAtk.on = true; btnAtk.id = id; if (!input.punch) pressEdge("punch"); input.punch = true; ptrRole[id] = "atk"; }
+  else if (inBtn(g, btnKick)){ btnKick.on = true; btnKick.id = id; if (!input.kick) pressEdge("kick"); input.kick = true; ptrRole[id] = "kick"; }
+  else if (inBtn(g, btnJump)){ btnJump.on = true; btnJump.id = id; if (!input.jump) pressEdge("jump"); input.jump = true; ptrRole[id] = "jump"; }
+  else if (g.x < W/2 && joy.id === -1){ joy.id = id; ptrRole[id] = "joy"; joyApply(g); }
+  else ptrRole[id] = "start";
+  anyStart();
+});
+cv.addEventListener("pointermove", function(ev){
+  if (ptrRole[ev.pointerId] === "joy" && ev.pointerId === joy.id) joyApply(toGame(ev));
+});
+function ptrEnd(ev){
+  var id = ev.pointerId, role = ptrRole[id];
+  if (role === "joy" && id === joy.id) joyClear();
+  else if (role === "atk" && id === btnAtk.id){ btnAtk.on = false; btnAtk.id = -1; input.punch = false; }
+  else if (role === "kick" && id === btnKick.id){ btnKick.on = false; btnKick.id = -1; input.kick = false; }
+  else if (role === "jump" && id === btnJump.id){ btnJump.on = false; btnJump.id = -1; input.jump = false; }
+  delete ptrRole[id];
+}
+cv.addEventListener("pointerup", ptrEnd);
+cv.addEventListener("pointercancel", ptrEnd);
+cv.addEventListener("contextmenu", function(ev){ ev.preventDefault(); });
+
+// ---------- responsive canvas ----------
+function fitCanvas(){
+  var aw = window.innerWidth, ah = window.innerHeight;
+  var scale = Math.min(aw / W, ah / H);
+  cv.style.width = Math.floor(W * scale) + "px";
+  cv.style.height = Math.floor(H * scale) + "px";
+}
+window.addEventListener("resize", fitCanvas);
+
+// ---------- main loop: fixed timestep, decoupled render ----------
+var fixedSeed = 20261110;      // run seed; __game.start(seed) / UI restart use it unless changed
+G = newGame(fixedSeed);
+selApply();
+var acc = 0, lastTs = 0;
+function frame(ts){
+  requestAnimationFrame(frame);
+  if (!lastTs) lastTs = ts;
+  var dtMs = ts - lastTs; lastTs = ts;
+  if (dtMs > 250) dtMs = 250;
+  // a physically-held button is a press LEVEL: arm the buffer once when the
+  // level first appears (holding never re-arms; releasing clears the level)
+  if (input.punch && !frame._pWas) edgeBuf.punch = BUF_TICKS;
+  if (input.kick && !frame._kWas) edgeBuf.kick = BUF_TICKS;
+  if (input.jump && !frame._jWas){
+    // a jump tap can complete inside a single rendered frame at low fps
+    // (the button's pointerup may even reach the sim via stepTicks before
+    // any frame() runs) — honour the direct pressEdge from the input layer
+    // and only top the buffer up here for keyboard-style holds.
+    if (edgeBuf.jump <= 0) edgeBuf.jump = BUF_TICKS;
+  }
+  frame._pWas = !!input.punch; frame._kWas = !!input.kick; frame._jWas = !!input.jump;
+  pressTrack();
+  if (NET && NET.active) netSample();
+  acc += dtMs / 1000;
+  var n = 0;
+  while (acc >= STEP && n < 6){
+    // action edges are derived from edgeBuf inside simStep (buffered,
+    // consumed by playerStep) — nothing to clear here.
+    if (botOn && (G.phase === "fight" || G.phase === "go")){ botDrive(); }
+    if (NET && NET.active && (G.phase === "fight" || G.phase === "go")){
+      // lockstep gate: never step a tick until BOTH players' records for
+      // it are held. Stall instead (and drop the frame's time debt, so a
+      // slow peer cannot build up a catch-up burst).
+      if (!netCanStep()){
+        NET.stallFrames++;
+        if (NET.stallFrames > 30) NET.stalled = true;
+        acc = 0;
+        break;
+      }
+      NET.stallFrames = 0; NET.stalled = false;
+      netApplyTick(G.tick);
+      simStep(STEP);
+      netAfterStep();
+    } else {
+      simStep(STEP);
+    }
+    acc -= STEP; n++;
+  }
+  if (n === 6) acc = 0;
+  // render jitter for shake (visual only, not in sim)
+  shakeX = G.shake > 0 ? ((G.tick * 7919) % 5 - 2) * (G.shake / 3) : 0;
+  shakeY = G.shake > 0 ? ((G.tick * 104729) % 5 - 2) * (G.shake / 3) : 0;
+  ctx.setTransform(1, 0, 0, 1, shakeX, shakeY);
+  render();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  bgmTick();
+}
+fitCanvas();
+requestAnimationFrame(frame);
+
+// ---------- test hooks ----------
+function resetInputState(keepHeld){
+  // keepHeld: for live-session hooks (__game.start) the pointer/keyboard
+  // levels currently held by the user must survive — only buffers and
+  // edge latches reset. runScript resets fully (fresh-load semantics).
+  edgeBuf.punch = edgeBuf.kick = edgeBuf.jump = 0;
+  input.startP = false;
+  if (!keepHeld){
+    input.left = input.right = input.up = input.down = false;
+    input.punch = input.kick = input.jump = false;
+  }
+  input.punchP = input.kickP = input.jumpP = false;
+  prevInput = { left:false, right:false, up:false, down:false, punch:false, kick:false, jump:false };
+  if (pins[1]){
+    pins[1].lv = { up:false, down:false, left:false, right:false, punch:false, kick:false, jump:false };
+    pins[1].buf = { punch: 0, kick: 0, jump: 0 };
+    pins[1].edge = { punchP:false, kickP:false, jumpP:false };
+  }
+  if (!keepHeld) joyClear();
+  // level-watcher baseline: whatever is held right now is not a fresh press
+  frame._pWas = !!input.punch; frame._kWas = !!input.kick; frame._jWas = !!input.jump;
+}
+function defaultCfg(o){
+  o = o || {};
+  return { mode: o.mode || "1P", chars: o.chars || (o.mode === "2P" ? ["ahLong", "ahFu"] : ["ahLong"]) };
+}
+function makeScriptRunner(pidx){
+  var pin = pinForTest(pidx);
+  var cur = { punch:false, kick:false, jump:false };
+  return {
+    apply: function(io){
+      // levels straight through the pin channel…
+      pin.set(io);
+      // …and one armed buffer edge per rising edge (press), exactly like the
+      // real keyboard/pointer handlers do — holding never re-fires.
+      for (var k in io){
+        if (k === "punch" || k === "kick" || k === "jump"){
+          if (io[k] && !cur[k]){ var o = {}; o[k + "P"] = true; pin.set(o); }
+          cur[k] = !!io[k];
+        }
+      }
+    },
+    cur: cur
+  };
+}
+window.__game = {
+  get state(){ return G; },
+  // deterministic runner: resets with a seed, then applies an input script.
+  // Script formats (both supported):
+  //  - legacy 1P: [ticks, inputObject] — inputs persist across entries.
+  //  - 2P: { p1: [...], p2: [...] } with per-player entry lists (lockstep:
+  //    both players' inputs are part of the sim input structure).
+  // Returns the final snapshot. Fixed-step only — no wall clock involved.
+  runScript: function(seed, script, opts){
+    fixedSeed = seed;
+    var cfg = defaultCfg(opts);
+    G = newGame(seed, cfg); G.phase = "fight"; startWave(0);
+    // isolate from the live frame loop: a second runScript on the same page
+    // must not inherit edge buffers / direction levels armed by real input;
+    // reset them so replays are bit-identical (fresh-load semantics).
+    resetInputState();
+    if (Array.isArray(script)){
+      var r1 = makeScriptRunner(0);
+      for (var s = 0; s < script.length; s++){
+        r1.apply(script[s][1]);
+        for (var t = 0; t < script[s][0]; t++){ simStep(STEP); input.startP = false; }
+      }
+    } else if (script && (script.p1 || script.p2)){
+      var ra = makeScriptRunner(0), rb = makeScriptRunner(1);
+      var lists = [script.p1 || [], script.p2 || []], runners = [ra, rb];
+      var idxs = [0, 0], total = 0, q;
+      for (q = 0; q < 2; q++) for (var e2 = 0; e2 < lists[q].length; e2++) total = Math.max(total, 0); // totals computed below
+      var lens = [0, 0];
+      for (q = 0; q < 2; q++) for (var e3 = 0; e3 < lists[q].length; e3++) lens[q] += lists[q][e3][0];
+      var totalTicks = Math.max(lens[0], lens[1]);
+      var accs = [0, 0];
+      for (var tt = 0; tt < totalTicks; tt++){
+        for (q = 0; q < 2; q++){
+          while (idxs[q] < lists[q].length && accs[q] <= tt){
+            runners[q].apply(lists[q][idxs[q]][1]);
+            accs[q] += lists[q][idxs[q]][0];
+            idxs[q]++;
+          }
+        }
+        simStep(STEP); input.startP = false;
+      }
+    }
+    resetInputState();
+    return this.snapshot();
+  },
+  start: function(seed, opts){ fixedSeed = (seed === undefined ? fixedSeed : seed); G = newGame(fixedSeed, defaultCfg(opts)); G.phase = "fight"; startWave(0);
+    resetInputState(true); },
+  // start at the character-select screen (for UI tests)
+  toSelect: function(seed){ fixedSeed = (seed === undefined ? fixedSeed : seed); G = newGame(fixedSeed, {}); G.phase = "select"; selIdx = 0; selApply(); resetInputState(true); },
+  selectSet: function(i){ selIdx = i; selApply(); },
+  get selIdx(){ return selIdx; },
+  // online session introspection (lobby flow + net test rig)
+  get net(){ return NET ? { active: NET.active, role: NET.role, myIdx: NET.myIdx, code: NET.code,
+    seed: NET.seed, stalled: NET.stalled, desync: NET.desync, broken: NET.broken,
+    nextTick: NET.nextTick, have0: Object.keys(NET.recs[0]).length,
+    have1: Object.keys(NET.recs[1]).length } : null; },
+  lobbyInfo: function(){ return { phase: G.phase, state: LOBBY.state, idx: LOBBY.idx,
+    code: LOBBY.code, typed: LOBBY.typed, status: LOBBY.status, selIdx: selIdx }; },
+  forceWave: function(n){ G.enemies = []; G.bossRef = null; startWave(n); },
+  hurtPlayer: function(n, idx){ var q = G.players[idx || 0]; q.hp -= n; if (q.hp <= 0 && !q.dead){ q.dead = true; q.state = "down"; q.tState = 0; q.vy = 200; } },
+  killPlayer: function(idx){ var q = G.players[idx || 0]; q.hp = 0; q.dead = true; q.state = "down"; q.tState = 0.9; q.removeMe = false; },
+  spawnBoss: function(){ G.enemies = []; G.bossRef = null; startWave(3); },
+  killAll: function(){ for (var i=0;i<G.enemies.length;i++){ G.enemies[i].hp = 0; G.enemies[i].dead = true; G.enemies[i].state = "down"; G.enemies[i].tState = 0.79; G.enemies[i].vy = 1; G.enemies[i].y = 0.01; } },
+  giveWeapon: function(t, idx){ G.players[idx || 0].weapon = { type: t || "bat", dur: 8 }; },
+  setInput: function(o, idx){ pinForTest(idx || 0).set(o); },
+  botStep: function(idx, mode){
+    // legacy: one interleaved sim step driven by the shared botDrive logic
+    // (P1 only; mode "stand" parks the bot)
+    if ((idx || 0) === 0 && mode !== "stand") botDrive();
+    else if (mode === "stand") pinForTest(idx || 0).set({ up:false, down:false, left:false, right:false });
+    simStep(STEP);
+    input.startP = false;
+  },
+  stepTicks: function(n){ for (var i=0;i<n;i++){ simStep(STEP); input.startP = false; } },
+  useBot: function(on){ botOn = !!on; },
+  // deterministic wave-1 bot run (same logic the browser build uses via
+  // botDrive): returns the snapshot when wave 1 ends (cleared or died).
+  botWave1: function(seed, opts){
+    fixedSeed = seed;
+    G = newGame(seed, defaultCfg(opts)); G.phase = "fight"; startWave(0);
+    resetInputState();
+    var guard = 0;
+    while (guard++ < 60 * 120){
+      if (G.phase === "go" || G.phase === "over" || G.wave > 0) break;
+      botDrive();
+      simStep(STEP); input.startP = false;
+    }
+    var snap = this.snapshot();
+    resetInputState();
+    return snap;
+  },
+  snapshot: function(){
+    var ps = [];
+    for (var i=0;i<G.players.length;i++){
+      var q = G.players[i];
+      ps.push({ hp: q.hp, x: Math.round(q.x), z: Math.round(q.z), state: q.state,
+        charId: q.charId, kind: q.kind, alive: !q.dead,
+        weapon: q.weapon ? q.weapon.type : null });
+    }
+    return {
+      phase: G.phase, wave: G.wave, score: G.score,
+      mode: G.mode, players: ps,
+      playerHp: ps[0].hp, playerX: ps[0].x, playerZ: ps[0].z,
+      playerState: ps[0].state, weapon: ps[0].weapon,
+      enemiesAlive: G.enemies.filter(function(e){ return !e.removeMe; }).length,
+      propsLeft: G.props.filter(function(pr){ return !pr.dead; }).length,
+      foodOut: G.parts.filter(function(q2){ return q2.food; }).length,
+      cam: Math.round(G.cam), tick: G.tick, time: Math.round(G.time * 10) / 10,
+      bossHp: G.bossRef ? G.bossRef.hp : null
+    };
+  }
+};
+</script>
+</body>
+</html>
