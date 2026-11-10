@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "generator": "tools/build_assets.py",
+  "atlas": {
+    "w": 576,
+    "h": 384
+  },
+  "backdrop": {
+    "w": 1152,
+    "h": 548
+  },
+  "frames": {
+    "hero_red": {
+      "x": 19,
+      "y": 3,
+      "w": 89,
+      "h": 250
+    },
+    "hero_teal": {
+      "x": 147,
+      "y": 3,
+      "w": 89,
+      "h": 250
+    },
+    "thug_green": {
+      "x": 259,
+      "y": 30,
+      "w": 122,
+      "h": 223
+    },
+    "boss_denim": {
+      "x": 387,
+      "y": 49,
+      "w": 122,
+      "h": 204
+    },
+    "crate": {
+      "x": 3,
+      "y": 291,
+      "w": 90,
+      "h": 90
+    },
+    "metal_bin": {
+      "x": 100,
+      "y": 259,
+      "w": 88,
+      "h": 122
+    },
+    "trash_can": {
+      "x": 195,
+      "y": 270,
+      "w": 90,
+      "h": 111
+    },
+    "lantern": {
+      "x": 301,
+      "y": 259,
+      "w": 70,
+      "h": 122
+    },
+    "neon_sign": {
+      "x": 394,
+      "y": 259,
+      "w": 75,
+      "h": 122
+    },
+    "cone": {
+      "x": 483,
+      "y": 261,
+      "w": 90,
+      "h": 120
+    }
+  },
+  "roles": {
+    "hero": "hero_red",
+    "hero2": "hero_teal",
+    "brawler": "thug_green",
+    "carrier": "thug_green",
+    "brute": "boss_denim",
+    "boss": "boss_denim"
+  },
+  "props": {
+    "crate": "crate",
+    "bin": "trash_can"
+  },
+  "decor": [
+    "lantern",
+    "neon_sign",
+    "cone",
+    "metal_bin"
+  ],
+  "options": {
+    "skinFighters": false,
+    "backdropAlpha": 0.72,
+    "hideCity": true,
+    "hideShops": false
+  }
+}
