@@ -1498,8 +1498,28 @@ function netPeerTransport(sess, conn){
   };
   sess.transport.onmessage = function(obj){ if (NET === sess) netHandleMessage(obj); };
 }
+// ----- connection-stage timers: every waiting stage gets a deadline, so
+// a stuck connection surfaces a specific message instead of spinning on
+// one status forever (Matt's 2026-11-10 report: 連接緊… with no end).
+function netClearTimers(sess){
+  if (!sess || !sess.timers) return;
+  for (var i=0;i<sess.timers.length;i++) clearTimeout(sess.timers[i]);
+  sess.timers = [];
+}
+function netArmTimer(sess, ms, fn){
+  if (!sess.timers) sess.timers = [];
+  var id = setTimeout(function(){ if (NET === sess) fn(); }, ms);
+  sess.timers.push(id);
+  return id;
+}
+function netFail(sess, state, status){
+  if (NET !== sess) return;
+  netCloseTransport(); NET = null;
+  LOBBY.state = state; LOBBY.status = status;
+}
 function netCloseTransport(){
   if (!NET) return;
+  netClearTimers(NET);
   if (NET.transport){ try { NET.transport.close(); } catch(e){} NET.transport = null; }
   if (NET.conn){ try { NET.conn.close(); } catch(e){} NET.conn = null; }
   if (NET.peer){ try { NET.peer.destroy(); } catch(e){} NET.peer = null; }
@@ -1512,7 +1532,7 @@ function netHostStart(){
   var sess = NET;
   NET.code = netGenCode();
   LOBBY.code = NET.code;
-  LOBBY.state = "hostWait"; LOBBY.status = "開房中…";
+  LOBBY.state = "hostWait"; LOBBY.status = "① 開房中（連緊信令服務）…";
   if (QS_NETTEST){
     netAttachBC(sess);
     LOBBY.status = "等朋友入房…（本機測試模式）";
@@ -1525,21 +1545,49 @@ function netHostStart(){
   }
   netPeerHostOpen(sess);
 }
+function netHostConnReset(sess, conn){
+  // a guest's direct connection died before the game started: drop that
+  // conn only and keep the room open for another attempt
+  if (NET !== sess || sess.active) return;
+  if (sess.conn !== conn) return;
+  sess.conn = null; sess.transport = null;
+  try { conn.close(); } catch(e){}
+  LOBBY.status = "頭先嗰個直連失敗咗，繼續等朋友入房…";
+}
 function netPeerHostOpen(sess){
+  netClearTimers(sess);
   if (sess.peer){ try { sess.peer.destroy(); } catch(e){} sess.peer = null; }
   var peer;
   try { peer = new window.Peer(PEER_PREFIX + sess.code); } catch(e){
     LOBBY.state = "menu"; LOBBY.status = "開房失敗，再試下"; netCloseTransport(); NET = null; return;
   }
   sess.peer = peer;
-  peer.on("open", function(){ if (NET === sess) LOBBY.status = "等朋友入房…"; });
+  netArmTimer(sess, 12000, function(){
+    netFail(sess, "menu", "開房失敗：連唔到信令服務（等咗 12 秒）— 檢查網絡；要用 Chrome/Safari 開，唔好喺通訊 app 入面開");
+  });
+  peer.on("open", function(){
+    if (NET !== sess) return;
+    netClearTimers(sess);
+    if (!sess.active) LOBBY.status = "等朋友入房…";
+  });
+  peer.on("disconnected", function(){
+    if (NET !== sess || sess.active) return;
+    LOBBY.status = "信令斷咗，重連中…";
+    try { peer.reconnect(); } catch(e){}
+    netArmTimer(sess, 10000, function(){
+      netFail(sess, "menu", "開房失敗：信令重連唔到 — 檢查網絡再試");
+    });
+  });
   peer.on("connection", function(conn){
     if (NET !== sess) return;
     if (sess.conn){ try { conn.close(); } catch(e){} return; }
     sess.conn = conn;
     netPeerTransport(sess, conn);
+    LOBBY.status = "有朋友連緊入嚟…";
     conn.on("data", function(d){ if (sess.transport) sess.transport.onmessage(d); });
     conn.on("close", function(){ netPeerGone(); });
+    conn.on("error", function(){ netHostConnReset(sess, conn); });
+    conn.on("iceStateChanged", function(st){ if (st === "failed") netHostConnReset(sess, conn); });
   });
   peer.on("error", function(err){
     if (NET !== sess) return;
@@ -1561,7 +1609,7 @@ function netGuestJoin(){
   NET = newNetSession("guest");
   var sess = NET;
   sess.code = code; LOBBY.code = code;
-  LOBBY.state = "joining"; LOBBY.status = "連接緊…";
+  LOBBY.state = "joining"; LOBBY.status = "① 連緊信令服務…";
   if (QS_NETTEST){
     netAttachBC(sess);
     sess.transport.send({ type: "hello", code: code });
@@ -1578,25 +1626,47 @@ function netGuestJoin(){
     LOBBY.state = "menu"; LOBBY.status = "連接失敗，再試下"; NET = null; return;
   }
   sess.peer = peer;
+  netArmTimer(sess, 12000, function(){
+    netFail(sess, "menu", "連唔到信令服務（等咗 12 秒）— 檢查網絡；要用 Chrome/Safari 開，唔好喺通訊 app 入面開");
+  });
   peer.on("open", function(){
     if (NET !== sess) return;
+    netClearTimers(sess);
+    LOBBY.status = "② 信令 OK，直連緊主機…";
     var conn = peer.connect(PEER_PREFIX + code, { reliable: true });
     sess.conn = conn;
     netPeerTransport(sess, conn);
+    netArmTimer(sess, 20000, function(){
+      netFail(sess, "typing", "直連唔到主機（等咗 20 秒）— 多數係網絡擋住咗直連：兩部機試下用同一個 WiFi，兩邊螢幕保持開住、停留喺遊戲畫面再試");
+    });
     conn.on("open", function(){
       if (NET !== sess) return;
+      netClearTimers(sess);
       sess.transport.send({ type: "hello", code: code });
-      LOBBY.status = "已連接，等主機開始…";
+      LOBBY.status = "③ 已連通，等主機開始…";
+      netArmTimer(sess, 10000, function(){
+        netFail(sess, "typing", "主機冇回應 — 等主機嗰邊重新開房再試");
+      });
     });
     conn.on("data", function(d){ if (sess.transport) sess.transport.onmessage(d); });
     conn.on("close", function(){ netPeerGone(); });
+    conn.on("error", function(err){
+      var t = (err && err.type) ? err.type : "";
+      netFail(sess, "typing", "直連失敗（" + t + "）— 兩部機試下用同一個 WiFi 再試");
+    });
+    conn.on("iceStateChanged", function(st){
+      if (st === "failed") netFail(sess, "typing", "直連失敗（網絡擋住咗）— 兩部機試下用同一個 WiFi，兩邊螢幕保持開住再試");
+    });
+  });
+  peer.on("disconnected", function(){
+    if (NET !== sess || sess.active) return;
+    netFail(sess, "menu", "信令斷咗線 — 檢查網絡再試");
   });
   peer.on("error", function(err){
     if (NET !== sess) return;
     var t = (err && err.type) ? err.type : "";
-    netCloseTransport(); NET = null;
-    if (t === "peer-unavailable"){ LOBBY.state = "typing"; LOBBY.status = "房間唔存在，檢查代碼再試"; }
-    else { LOBBY.state = "menu"; LOBBY.status = "連接失敗（" + t + "），再試下"; }
+    if (t === "peer-unavailable") netFail(sess, "typing", "房間唔存在，檢查代碼再試");
+    else netFail(sess, "menu", "連接失敗（" + t + "），再試下");
   });
 }
 
@@ -1642,6 +1712,7 @@ function netHostBegin(){
   netStartGame(seed);
 }
 function netStartGame(seed){
+  netClearTimers(NET);
   NET.active = true;
   NET.seed = seed;
   NET.recs = [{}, {}];
