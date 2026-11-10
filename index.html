@@ -76,12 +76,19 @@ function pressEdge(kind){ edgeBuf[kind] = BUF_TICKS; }
 var INPUT_DELAY = 3;
 // Query flags, read defensively: the node test harness loads this script
 // with no location object, and local modes must never depend on them.
-var QS_NETTEST = false, QS_ROLE = "";
+var QS_NETTEST = false, QS_ROLE = "", QS_RELAY = "";
 try {
   if (typeof location !== "undefined" && location.search){
     QS_NETTEST = /[?&]nettest=1(&|$)/.test(location.search);
     var qsRoleM = /[?&]role=(host|guest)/.exec(location.search);
     if (qsRoleM) QS_ROLE = qsRoleM[1];
+    // ?relay=wss://... points the game at a Cloudflare relay worker and
+    // is remembered on this device, so the link only needs opening once.
+    var qsRelayM = /[?&]relay=([^&]+)/.exec(location.search);
+    if (qsRelayM){
+      QS_RELAY = decodeURIComponent(qsRelayM[1]);
+      try { localStorage.setItem("da-relay-url", QS_RELAY); } catch(e){}
+    }
   }
 } catch(e){}
 
@@ -1274,16 +1281,19 @@ function render(){
     R(0, 0, W, H, "rgba(5,5,16,0.82)");
     TXT("線上雙打", W/2, 34, 22, "#ffd94a", "center", true);
     if (LOBBY.state === "menu"){
-      TXT("主機 = 1P 阿龍 · 客人 = 2P 阿虎 · P2P 直連唔經遊戲伺服器", W/2, 66, 11, "#aab", "center");
-      var lrows = ["開房做主機（出代碼俾朋友）", "輸入代碼入房", "返回"];
-      for (var li=0;li<3;li++){
+      TXT("主機 = 1P 阿龍 · 客人 = 2P 阿虎 · 兩邊要揀同一個連線方式", W/2, 62, 11, "#aab", "center");
+      var modeRow = (LOBBY.mode === "relay")
+        ? (relayBase() ? "連線方式：Cloudflare 中繼（㩒此切換）" : "連線方式：中繼（未設定網址）")
+        : "連線方式：P2P 直連（㩒此切換）";
+      var lrows = ["開房做主機（出代碼俾朋友）", "輸入代碼入房", modeRow, "返回"];
+      for (var li=0;li<4;li++){
         var ly = LOBBY_ROWS_Y[li], lsel = (LOBBY.idx === li);
-        if (lsel) R(W/2 - 150, ly - 5, 300, 26, "rgba(255,217,74,0.18)");
-        TXT((lsel ? "▶ " : "") + lrows[li], W/2, ly, 14, lsel ? "#ffd94a" : "#ccc", "center", true);
+        if (lsel) R(W/2 - 160, ly - 5, 320, 24, "rgba(255,217,74,0.18)");
+        TXT((lsel ? "▶ " : "") + lrows[li], W/2, ly, 13, lsel ? "#ffd94a" : "#ccc", "center", true);
       }
-      TXT("↑↓ 選擇 · Enter 確認 · 㩒一行即入 · 打字直接打代碼", W/2, 206, 10, "#aab", "center");
-      TXT(QS_NETTEST ? "本機測試模式（nettest 通道）" : "信令：PeerJS 雲端 · 玩法只傳輸入，逐格同步", W/2, 222, 10, "#8ad2ff", "center");
-      if (LOBBY.status) TXT(LOBBY.status, W/2, 244, 10, "#ff9a9a", "center");
+      TXT("↑↓ 選擇 · Enter 確認 · 㩒一行即入 · 打字直接打代碼", W/2, 210, 10, "#aab", "center");
+      TXT(QS_NETTEST ? "本機測試模式（nettest 通道）" : (LOBBY.mode === "relay" ? "中繼：Cloudflare Worker 轉發 · 玩法只傳輸入，逐格同步" : "信令：PeerJS 雲端 · P2P 直連 · 玩法只傳輸入，逐格同步"), W/2, 224, 10, "#8ad2ff", "center");
+      if (LOBBY.status) TXT(LOBBY.status, W/2, 246, 10, "#ff9a9a", "center");
     } else if (LOBBY.state === "hostWait"){
       TXT("將呢個代碼俾你朋友：", W/2, 74, 13, "#ddd", "center");
       TXT(LOBBY.code.split("").join(" "), W/2, 100, 44, "#ffd94a", "center", true);
@@ -1407,8 +1417,12 @@ var ICE_CONFIG = { iceServers: [
   { urls: "turns:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
 ] };
 var CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-var LOBBY = { state: "menu", idx: 0, typed: "", code: "", status: "" };
-var LOBBY_ROWS_Y = [108, 140, 172];
+function netStoredMode(){
+  try { return localStorage.getItem("da-net-mode") === "relay" ? "relay" : "p2p"; }
+  catch(e){ return "p2p"; }
+}
+var LOBBY = { state: "menu", idx: 0, typed: "", code: "", status: "", mode: netStoredMode() };
+var LOBBY_ROWS_Y = [100, 128, 156, 184];
 var SEL_ROWS_Y = [84, 116, 148, 180];
 
 function peerAvailable(){ return typeof window !== "undefined" && !!window.Peer; }
@@ -1420,6 +1434,7 @@ function netGenCode(){
 function newNetSession(role){
   return { role: role, myIdx: role === "host" ? 0 : 1, remoteIdx: role === "host" ? 1 : 0,
     active: false, code: "", seed: 0, transport: null, peer: null, conn: null, bc: null,
+    ws: null, mode: "p2p",
     recs: [{}, {}], nextTick: INPUT_DELAY, stallFrames: 0, stalled: false,
     desync: false, broken: false, hashMine: {}, hashTheirs: {}, retry: 0 };
 }
@@ -1434,7 +1449,7 @@ function enterLobby(){
   LOBBY.state = "menu";
   LOBBY.idx = (QS_NETTEST && QS_ROLE === "guest") ? 1 : 0;
   LOBBY.typed = ""; LOBBY.status = "";
-  if (!QS_NETTEST && !peerAvailable()) LOBBY.status = "連線組件未載入，線上雙打暫時用唔到（本地模式不受影響）";
+  if (!QS_NETTEST && LOBBY.mode !== "relay" && !peerAvailable()) LOBBY.status = "連線組件未載入，線上雙打暫時用唔到（本地模式不受影響）";
 }
 function lobbyConfirm(){
   if (LOBBY.state !== "menu") return;
@@ -1449,6 +1464,16 @@ function lobbyConfirm(){
         netGuestJoin();
       } else LOBBY.state = "menu";
     }
+  }
+  else if (LOBBY.idx === 2){
+    // transport toggle: P2P direct <-> Cloudflare relay. Both players
+    // must pick the SAME mode or they will never meet.
+    LOBBY.mode = (LOBBY.mode === "relay") ? "p2p" : "relay";
+    try { localStorage.setItem("da-net-mode", LOBBY.mode); } catch(e){}
+    LOBBY.status = (LOBBY.mode === "relay")
+      ? "已轉去 Cloudflare 中繼 — 朋友嗰邊都要轉埋同一個模式"
+      : "已轉去 P2P 直連 — 朋友嗰邊都要轉埋同一個模式";
+    SFX.swing();
   }
   else netExitToSelect();
 }
@@ -1471,8 +1496,8 @@ function lobbyKey(ev){
   }
   if (c === "Escape"){ lobbyBack(); return; }
   if (LOBBY.state === "menu"){
-    if (c === "ArrowUp"){ LOBBY.idx = (LOBBY.idx + 2) % 3; SFX.swing(); }
-    else if (c === "ArrowDown"){ LOBBY.idx = (LOBBY.idx + 1) % 3; SFX.swing(); }
+    if (c === "ArrowUp"){ LOBBY.idx = (LOBBY.idx + 3) % 4; SFX.swing(); }
+    else if (c === "ArrowDown"){ LOBBY.idx = (LOBBY.idx + 1) % 4; SFX.swing(); }
     else if (c === "Enter" || c === "Space") lobbyConfirm();
     else if (/^Key[A-Z]$/.test(c) || /^Digit[0-9]$/.test(c)){
       // Typing a room code straight from the menu jumps into code entry
@@ -1489,7 +1514,7 @@ function lobbyKey(ev){
 function lobbyPointer(g){
   if (LOBBY.state === "menu"){
     var hit = -1;
-    for (var i=0;i<3;i++){ if (Math.abs(g.y - LOBBY_ROWS_Y[i]) <= 16){ hit = i; break; } }
+    for (var i=0;i<4;i++){ if (Math.abs(g.y - LOBBY_ROWS_Y[i]) <= 14){ hit = i; break; } }
     if (hit >= 0){
       // Lobby rows are actions （開房/入房/返回）, not a mode choice:
       // ONE click activates the row. The old select-then-confirm pattern
@@ -1557,6 +1582,99 @@ function netCloseTransport(){
   if (NET.conn){ try { NET.conn.close(); } catch(e){} NET.conn = null; }
   if (NET.peer){ try { NET.peer.destroy(); } catch(e){} NET.peer = null; }
   if (NET.bc){ try { NET.bc.close(); } catch(e){} NET.bc = null; }
+  if (NET.ws){ try { NET.ws.close(); } catch(e){} NET.ws = null; }
+}
+
+// ----- Cloudflare relay transport (v4.4) -----
+// Both sides open a websocket to the relay worker (wss on 443 — the same
+// shape as loading a web page, so it works on networks where WebRTC P2P
+// can never form). A Durable Object per room code pairs host+guest and
+// forwards messages; the game's hello/start handshake and lockstep
+// records pass through untouched. Relay control messages arrive as
+// {type:"__relay", event:"..."} and are intercepted by the adapter.
+// Address resolution: baked-in RELAY_URL, overridden per device by a
+// ?relay=wss://... link (persisted to localStorage) so the game can be
+// pointed at a freshly deployed worker without editing the file.
+var RELAY_URL = "wss://dragon-alley-relay.ccac-church.workers.dev/ws";
+function relayBase(){
+  try { var s = localStorage.getItem("da-relay-url"); if (s) return s; } catch(e){}
+  if (QS_RELAY) return QS_RELAY;
+  return RELAY_URL;
+}
+function netWsTransport(sess, ws){
+  sess.ws = ws;
+  sess.transport = {
+    send: function(obj){ try { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); } catch(e){} },
+    onmessage: null,
+    close: function(){ try { ws.close(); } catch(e){} }
+  };
+  sess.transport.onmessage = function(obj){ if (NET === sess) netHandleMessage(obj); };
+  ws.onmessage = function(ev){
+    var msg = null;
+    try { msg = JSON.parse(ev.data); } catch(e){ return; }
+    if (msg && msg.type === "__relay"){ netRelayEvent(sess, msg.event); return; }
+    if (sess.transport && sess.transport.onmessage) sess.transport.onmessage(msg);
+  };
+  ws.onclose = function(){ if (NET === sess && sess.ws === ws) netPeerGone(); };
+  ws.onerror = function(){ /* a close event follows; stage timers cover stalls */ };
+}
+function netRelayEvent(sess, event){
+  if (NET !== sess) return;
+  if (event === "no-host") netFail(sess, "typing", "房間唔存在（中繼）— 等主機開咗房先");
+  else if (event === "room-full") netFail(sess, "typing", "間房已經有客人入咗");
+  else if (event === "room-taken"){
+    // another host holds this code on the relay: fresh code, retry
+    if (sess.role === "host" && LOBBY.state === "hostWait" && (sess.retry || 0) < 8){
+      sess.retry = (sess.retry || 0) + 1;
+      sess.code = netGenCode(); LOBBY.code = sess.code; sess.ws = null;
+      netRelayConnect(sess);
+    } else netFail(sess, "menu", "開房失敗（代碼撞咗），再試下");
+  }
+  else if (event === "peer-left") netPeerGone();
+  // "paired" / "guest-joined" are informational: the hello/start
+  // handshake over the pipe drives everything from here.
+}
+function netRelayConnect(sess){
+  var base = relayBase();
+  var ws;
+  try { ws = new WebSocket(base + (base.indexOf("?") >= 0 ? "&" : "?") + "room=" + sess.code + "&role=" + sess.role); }
+  catch(e){ netFail(sess, sess.role === "host" ? "menu" : "typing", "中繼連線失敗，再試下"); return; }
+  netWsTransport(sess, ws);
+  ws.onopen = function(){
+    if (NET !== sess) return;
+    netClearTimers(sess);
+    if (sess.role === "host"){ if (!sess.active) LOBBY.status = "等朋友入房…"; }
+    else {
+      sess.transport.send({ type: "hello", code: sess.code });
+      LOBBY.status = "已連通（中繼），等主機開始…";
+      netArmTimer(sess, 10000, function(){
+        netFail(sess, "typing", "主機冇回應 — 等主機嗰邊重新開房再試");
+      });
+    }
+  };
+}
+function netRelayReady(sess, failState){
+  if (relayBase()) return true;
+  netFail(sess, failState, "中繼未設定網址：先部署 Cloudflare Worker，再用 ?relay= 連結開一次本頁，或者將網址俾 Muse 入落遊戲");
+  return false;
+}
+function netRelayHostStart(sess){
+  LOBBY.state = "hostWait"; LOBBY.status = "① 開房中（連緊中繼）…";
+  if (!netRelayReady(sess, "menu")) return;
+  sess.mode = "relay";
+  netArmTimer(sess, 12000, function(){
+    netFail(sess, "menu", "開房失敗：連唔到中繼（等咗 12 秒）— 檢查網絡同中繼網址");
+  });
+  netRelayConnect(sess);
+}
+function netRelayGuestJoin(sess){
+  LOBBY.state = "joining"; LOBBY.status = "① 連緊中繼…";
+  if (!netRelayReady(sess, "typing")) return;
+  sess.mode = "relay";
+  netArmTimer(sess, 12000, function(){
+    netFail(sess, "typing", "連唔到中繼（等咗 12 秒）— 檢查網絡同中繼網址");
+  });
+  netRelayConnect(sess);
 }
 
 // ----- session setup: host -----
@@ -1571,6 +1689,7 @@ function netHostStart(){
     LOBBY.status = "等朋友入房…（本機測試模式）";
     return;
   }
+  if (LOBBY.mode === "relay"){ netRelayHostStart(sess); return; }
   if (!peerAvailable()){
     LOBBY.state = "menu"; LOBBY.status = "連線組件載入失敗，線上雙打用唔到（本地模式不受影響）";
     NET = null;
@@ -1649,6 +1768,7 @@ function netGuestJoin(){
     LOBBY.status = "等主機回應…（本機測試模式）";
     return;
   }
+  if (LOBBY.mode === "relay"){ netRelayGuestJoin(sess); return; }
   if (!peerAvailable()){
     LOBBY.state = "menu"; LOBBY.status = "連線組件載入失敗，線上雙打用唔到（本地模式不受影響）";
     NET = null;
@@ -1746,6 +1866,10 @@ function netHostBegin(){
 }
 function netStartGame(seed){
   netClearTimers(NET);
+  // the relay adds a network hop, so its inputs get a longer runway
+  // (5 ticks instead of 3) to keep stalls rare; both sides derive this
+  // from their own session's transport mode, so they always agree.
+  INPUT_DELAY = (NET.mode === "relay") ? 5 : 3;
   NET.active = true;
   NET.seed = seed;
   NET.recs = [{}, {}];
