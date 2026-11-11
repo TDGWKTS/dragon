@@ -252,7 +252,7 @@ function newGame(seed, cfg){
   return g;
 }
 function makePlayer(idx, charId, x, z){
-  var hc = HEROES[charId];
+  var hc = HEROES[charId] || HEROES.ahLong;
   var p = makeFighter(hc.kind, x, z);
   p.idx = idx; p.charId = charId;
   p.hp = 100; p.maxhp = 100;
@@ -385,13 +385,13 @@ CHAPTERS.forEach(function(ch, ci){
     { x: bgate - 250, z: 246, t: PROP_POOL_B[(ci * 5 + 1) % PROP_POOL_B.length] } ]);
 });
 function startWave(n){
-  G.wave = n;
+  n = Math.max(0, Math.min(WAVES.length - 1, n | 0)); G.wave = n;
   var wv = WAVES[n];
   G.gate = wv.gate;
   G.atkTokens = WAVE_TOKENS[n];
   for (var i=0;i<wv.list.length;i++){
     var s = wv.list[i];
-    var e = spawnEnemy(s[0], s[1], s[2], s[3]);
+    var e = spawnEnemy(s[0], Math.max(G.cam + 4, Math.min(s[1], G.gate - 24 - i * 22)), s[2], s[3]);
     if (G.wave === 0 && s[0] !== "boss") e.dmg = Math.max(3, e.dmg - 2); // wave-1 onboarding: softer hits
     var chN = Math.floor(n / 3);
     if (chN > 0){ // chapter difficulty ramp
@@ -510,7 +510,7 @@ function hurt(target, dmg, kx, opts){
   target.flash = 0.12;
   target.stun = Math.max(target.stun, opts.stun || 0.22);
   if (target.grabbedBy){ target.grabbedBy.grabTarget = null; target.grabbedBy = null; }
-  if (target.grabTarget){ target.grabTarget.grabbedBy = null; target.grabTarget.state = "idle"; target.grabTarget.tState = 0; target.grabTarget = null; }
+  if (target.grabTarget){ var _gt = target.grabTarget; _gt.grabbedBy = null; if (!_gt.dead && _gt.state === "grabbed"){ _gt.state = "idle"; _gt.tState = 0; } target.grabTarget = null; }
   spawnDust(target.x, target.z, 2);
   if (target.hp <= 0 || opts.knockdown){
     enemyCounter(target, kx, wasGrabbed, true);
@@ -657,13 +657,13 @@ function playerStep(p, dt){
   if (p.state === "grab"){
     var gt = p.grabTarget;
     if (!gt || gt.dead || gt.state === "down"){ p.state = "idle"; p.grabTarget = null; if (gt) gt.grabbedBy = null; return; }
-    gt.x = p.x + p.face * 14; gt.z = p.z; gt.face = -p.face;
+    gt.x = p.x + p.face * 14; gt.z = p.z; gt.face = -p.face; clampBelt(gt);
     if (ED.punchP){
       EB.punch = 0;
       p.atkKind = "knee"; p.tState = 0;
-      var cm = HEROES[p.charId].comboMul;
-      hurt(gt, Math.max(1, Math.round(4 * HEROES[p.charId].dmgMul)), 0, { stun: 0.5 });
-      G.score += 20; G.hitstop = 0.05; SFX.kick();
+      var cm = (HEROES[p.charId] || HEROES.ahLong).comboMul;
+      hurt(gt, Math.max(1, Math.round(4 * (HEROES[p.charId] || HEROES.ahLong).dmgMul)), 0, { stun: 0.5 }); if (!gt.dead && gt.state !== "down"){ gt.grabbedBy = p; p.grabTarget = gt; gt.state = "grabbed"; gt.tState = 0; } else { p.grabTarget = null; p.state = "idle"; p.combo = 0; }
+      G.score += 20; G.hitstop = Math.max(G.hitstop, 0.05); SFX.kick();
       p.combo++;
       if (p.combo >= Math.max(2, Math.round(3 * cm))){
         hurt(gt, 6, p.face * 260, { knockdown: true });
@@ -671,7 +671,7 @@ function playerStep(p, dt){
         G.score += 50;
       }
     }
-    if (ED.kickP){
+    if (ED.kickP && !ED.punchP){
       EB.kick = 0;
       hurt(gt, 6, p.face * 330, { knockdown: true });
       gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; p.combo = 0;
@@ -791,7 +791,7 @@ function startPlayerAttack(p, kind){
   if (p.y > 0) p.state = "jumpatk";
   var hc = HEROES[p.charId] || HEROES.ahLong;
   if (kind === "punch"){
-    if (p.weapon){
+    if (p.weapon && WEAPON_STATS[p.weapon.type]){
       var ws = WEAPON_STATS[p.weapon.type];
       doAttackHit(p, ws.reach, 12, ws.dmg, p.face * 170, false);
       if (p.weapon.type === "whip") SFX.crack(); else SFX.swing();
@@ -833,8 +833,8 @@ function doAttackHit(atk, reach, zTol, dmg, kx, knockdown){
     if (Math.abs(t.z - atk.z) > zTol + 4) continue;
     // grab: player unarmed punch, very close, enemy standing
     if (isPlayer && !atk.weapon && atk.atkKind === "punch" && dx < 13 && t.state !== "attack" && atk.y === 0){
-      t.grabbedBy = atk; atk.grabTarget = t; atk.state = "grab"; atk.tState = 0; atk.combo = 0;
-      t.state = "grabbed"; t.tState = 0;
+      if (t.grabbedBy && t.grabbedBy !== atk){ var prevH = t.grabbedBy; prevH.grabTarget = null; if (prevH.state === "grab"){ prevH.state = "idle"; prevH.tState = 0; } } t.grabbedBy = atk; atk.grabTarget = t; atk.state = "grab"; atk.tState = 0; atk.combo = 0;
+      t.state = "grabbed"; t.tState = 0; clampBelt(t);
       hitAny = true; break;
     }
     var heavy = (t.kind === "brute" || isBossK(t.kind)) && !knockdown && dmg < 8;
@@ -895,9 +895,9 @@ function tokensUsed(except){
 function enemyStep(e, dt){
   var p = nearestPlayer(e) || G.player;
   e.tState += dt;
-  if (e.flash > 0) e.flash -= dt;
+  if (e.flash > 0) e.flash -= dt; if (e.dead && e.state !== "down"){ e.removeMe = true; return; }
   if (e.invuln > 0) e.invuln -= dt;
-  if (e.throwCd > 0) e.throwCd -= dt;
+  if (e.throwCd > 0) e.throwCd -= dt; if (e.stun > 0) e.stun -= dt;
   if (e.counterCd > 0) e.counterCd--;
 
   if (e.state === "down"){
@@ -953,7 +953,7 @@ function enemyStep(e, dt){
     if (e.tState > 0.42){ e.state = "idle"; e.tState = 0; }
     clampBelt(e); return;
   }
-  if (e.stun > 0){ e.stun -= dt; e.state = "idle"; return; }
+  if (e.stun > 0){ e.state = "idle"; return; }
   if (!nearestPlayer(e)) { e.state = "idle"; return; }
 
   // --- simple AI ---
@@ -1012,7 +1012,7 @@ function enemyStep(e, dt){
   for (var j=0;j<G.enemies.length;j++){
     var o = G.enemies[j];
     if (o !== e && !o.dead && Math.abs(o.x - e.x) < 10 && Math.abs(o.z - e.z) < 6) e.x += (e.x < o.x ? -8 : 8) * dt;
-  }
+  } clampBelt(e);
 }
 
 // thrown weapons / loose weapons physics
@@ -1030,7 +1030,7 @@ function weaponStep(dt){
         hurt(hitP, 5, Math.sign(w.vx) * 160, {});
         G.weapons.splice(i,1); continue;
       }
-      if (w.x < G.cam - 40 || w.x > G.cam + W + 60){ G.weapons.splice(i,1); continue; }
+      if (w.x < G.cam - 40 || w.x > G.cam + W_MAX + 60){ G.weapons.splice(i,1); continue; } // W_MAX is a sim constant; the view W must never leak into the sim
     } else if (w.y > 0 || w.vy !== 0){
       w.y += w.vy * dt; w.vy -= GRAV * dt; w.x += (w.vx || 0) * dt; w.vx *= 0.9;
       if (w.y <= 0){ w.y = 0; w.vy = 0; w.vx = 0; }
@@ -1073,7 +1073,7 @@ function allPlayersDead(){
 function reviveAtSpot(q){
   q.dead = false; q.deathHandled = false; q.removeMe = false; q.out = false;
   q.hp = q.maxhp;
-  q.x = Math.max(G.cam + 10, Math.min(WORLD_LEN - 14, q.deathX)); q.z = q.deathZ; clampBelt(q);
+  q.x = q.deathX; q.z = q.deathZ; clampBelt(q);
   q.y = 0; q.vy = 0; q.vx = 0; q.vz = 0;
   q.state = "idle"; q.tState = 0; q.invuln = 2.0;
   q.weapon = null; q.grabTarget = null; q.grabbedBy = null;
@@ -1102,7 +1102,7 @@ function doContinue(){
   for (var i=0;i<G.players.length;i++){
     var q = G.players[i];
     q.lives = 3; q.dead = false; q.out = false; q.deathHandled = false; q.rebornT = 0; q.removeMe = false;
-    q.hp = q.maxhp; q.weapon = null; q.grabTarget = null; q.grabbedBy = null;
+    q.hp = q.maxhp; q.weapon = null; q.grabTarget = null; q.grabbedBy = null; var qp = getPin(q); qp.buf.punch = 0; qp.buf.kick = 0; qp.buf.jump = 0;
     q.x = WAVES[G.wave].gate - 340 - i * 24; q.z = 215 + i * 16; q.y = 0; q.vy = 0; q.vx = 0; q.vz = 0;
     q.state = "idle"; q.tState = 0; q.invuln = 1.0;
     addFloat(q.x, q.z, "再戰！", "#ffd94a");
@@ -1141,7 +1141,7 @@ function simStep(dt){
   if (G.phase === "lobby"){ G.tick++; return; }
   if (paused && !(NET && NET.active)) return;
   G.tick++; G.time += dt;
-  if (G.hitstop > 0){ G.hitstop -= dt; decayFx(dt);
+  if (G.hitstop > 0 && G.phase !== "continue"){ G.hitstop -= dt; decayFx(dt);
     // keep direction levels in sync so a held direction is not mistaken
     // for a fresh double-tap when hitstop ends (playerStep also mirrors
     // levels into each player's own prevLv every step)
@@ -1181,7 +1181,7 @@ function simStep(dt){
   // camera follows the lead (leftmost living) player, clamped to the gate.
   // Moves toward the target at a fixed per-step rate (frame-count based,
   // not exponential) so replays are bit-exact.
-  var want = p ? p.x - 110 : G.cam;
+  var want = p ? p.x - 110 : G.cam; for (var ri=0;ri<G.players.length;ri++){ var rp2 = G.players[ri]; if (rp2.dead && rp2.rebornT > 0) want = Math.min(want, rp2.deathX - 110); }
   var maxCam = (G.phase === "fight") ? (G.gate - VW + 40) : (WORLD_LEN - VW);
   if (want > maxCam) want = maxCam;
   if (want < 0) want = 0;
@@ -1226,7 +1226,7 @@ function simStep(dt){
   if (G.phase === "clear") G.clearTimer += dt;
   livesCheck();
   if (allPlayersOut() && (G.phase === "fight" || G.phase === "go")){
-    G.phase = "continue"; G.continueT = 660; SFX.over();
+    G.phase = "continue"; G.continueT = 660; G.hitstop = 0; SFX.over();
     for (var zi=0;zi<G.players.length;zi++){ var zp = getPin(G.players[zi]); zp.buf.punch = 0; zp.buf.kick = 0; zp.buf.jump = 0; }
   }
 }
@@ -1643,7 +1643,7 @@ function sprPropEntry(type){
 }
 function drawWeaponSprF(f, kind, k, dh, usedName, sx, sy){
   var pe = sprPropEntry(f.weapon.type);
-  if (!pe || !pe.img || !pe.img.complete) return false;
+  if (!pe || !pe.img || !pe.img.complete || !pe.img.naturalWidth) return false;
   var pfr = pe.frames[f.weapon.type];
   var atk = (f.state === "attack" || f.state === "jumpatk");
   var P = { bat:   { sL: 37, cL: 33, cRot: 0.95 },
