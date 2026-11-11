@@ -98,9 +98,9 @@ RNG.prototype.chance = function(p){ return this.next() < p; };
 
 // ---------- constants ----------
 var W = 480, H = 270;
-var ZOOM = 1.5, VW = 320, VTOP = 90;   // v9: world render zoom; view = VW x (H - VTOP) world units
-var BELT_TOP = 178, BELT_BOT = 252;            // walkable depth band (world y = ground line)
-var WORLD_LEN = 20500;                          // total stage length (px)
+var ZOOM = 1, VW = 480, VTOP = 0;   // v13: pre-character-change view (Matt v5): full-width view, no zoom
+var BELT_TOP = 150, BELT_BOT = 252;            // walkable depth band (world y = ground line)
+var WORLD_LEN = 26540;                          // total stage length (px)
 var GRAV = 1500, JUMP_V = 560;
 var STEP = 1/60;
 
@@ -363,8 +363,8 @@ var WAVES = [], WAVE_TOKENS = [], PROPS_PER_WAVE = [];
 var PROP_POOL_A = ["crate", "bin", "drum", "boxes", "bags", "cone"];
 var PROP_POOL_B = ["tyres", "hydrant", "barrier", "stools", "plant", "lpg", "acunit", "bicycle", "postbox", "mahjong", "scooter", "foodcart", "vending", "lamp"];
 CHAPTERS.forEach(function(ch, ci){
-  var base = ci * 1980;
-  var gates = [base + 700, base + 1330, base + 1960];
+  var base = ci * 2640;
+  var gates = [base + 700, base + 1300, base + 1900, base + 2500];
   ch.waves.forEach(function(list, wi){
     var gate = gates[wi];
     WAVES.push({ gate: gate, list: list.map(function(sp, i){
@@ -374,7 +374,17 @@ CHAPTERS.forEach(function(ch, ci){
       { x: gate - 420, z: 198, t: PROP_POOL_A[(ci * 2 + wi) % PROP_POOL_A.length] },
       { x: gate - 190, z: 240, t: PROP_POOL_B[(ci * 3 + wi * 2) % PROP_POOL_B.length] } ]);
   });
-  var bgate = gates[2], blist = [];
+  // third gangster wave (v12: 3 waves before the boss) — the chapter's
+  // second list reinforced by one extra enemy on a chapter rotation
+  var thirdList = ch.waves[1].concat([[["brute", "g08", "g10", "punk", "lady", "g04"][ci % 6], null]]);
+  var gate3 = gates[2];
+  WAVES.push({ gate: gate3, list: thirdList.map(function(sp, i){
+    return [sp[0], gate3 + 90 + i * 85, 198 + (i % 3) * 21, sp[1] || null]; }) });
+  WAVE_TOKENS.push(ci === 0 ? 2 : 3);
+  PROPS_PER_WAVE.push([
+    { x: gate3 - 420, z: 198, t: PROP_POOL_A[(ci * 2 + 2) % PROP_POOL_A.length] },
+    { x: gate3 - 190, z: 240, t: PROP_POOL_B[(ci * 3 + 4) % PROP_POOL_B.length] } ]);
+  var bgate = gates[3], blist = [];
   if (ch.extraBoss) blist.push([ch.extraBoss, bgate - 260, 200, null]);
   blist.push([ch.boss, bgate - 110, 218, null]);
   ch.min.forEach(function(sp, i){ blist.push([sp[0], bgate - 210 + i * 270, 200 + (i % 2) * 38, sp[1] || null]); });
@@ -385,15 +395,18 @@ CHAPTERS.forEach(function(ch, ci){
     { x: bgate - 250, z: 246, t: PROP_POOL_B[(ci * 5 + 1) % PROP_POOL_B.length] } ]);
 });
 function startWave(n){
-  n = Math.max(0, Math.min(WAVES.length - 1, n | 0)); G.wave = n;
+  if (n < 0) n = 0; if (n > WAVES.length - 1) n = WAVES.length - 1;
+  G.wave = n;
   var wv = WAVES[n];
   G.gate = wv.gate;
   G.atkTokens = WAVE_TOKENS[n];
+  var overN = 0;
   for (var i=0;i<wv.list.length;i++){
     var s = wv.list[i];
-    var e = spawnEnemy(s[0], Math.max(G.cam + 4, Math.min(s[1], G.gate - 24 - i * 22)), s[2], s[3]);
+    var e = spawnEnemy(s[0], s[1], s[2], s[3]);
+    if (e.x > wv.gate - 6){ e.x = wv.gate - 6 - overN * 22; overN++; }
     if (G.wave === 0 && s[0] !== "boss") e.dmg = Math.max(3, e.dmg - 2); // wave-1 onboarding: softer hits
-    var chN = Math.floor(n / 3);
+    var chN = Math.floor(n / 4);
     if (chN > 0){ // chapter difficulty ramp
       e.hp = e.maxhp = Math.round(e.maxhp * (1 + 0.15 * chN));
       e.dmg += isBossK(s[0]) ? chN : Math.floor(chN * 0.6);
@@ -409,9 +422,9 @@ function startWave(n){
   }
   placeProps(n);
   G.phase = "fight";
-  if (n % 3 === 0){
-    var chI = CHAPTERS[n / 3];
-    UI.banner = "第 " + (n / 3 + 1) + " 章 " + chI.name;
+  if (n % 4 === 0){
+    var chI = CHAPTERS[n / 4];
+    UI.banner = "第 " + (n / 4 + 1) + " 章 " + chI.name;
     UI.sub = "守關者：" + (BOSS_NAMES[chI.boss] || "");
     UI.until = G.tick + 170;
   }
@@ -510,7 +523,7 @@ function hurt(target, dmg, kx, opts){
   target.flash = 0.12;
   target.stun = Math.max(target.stun, opts.stun || 0.22);
   if (target.grabbedBy){ target.grabbedBy.grabTarget = null; target.grabbedBy = null; }
-  if (target.grabTarget){ var _gt = target.grabTarget; _gt.grabbedBy = null; if (!_gt.dead && _gt.state === "grabbed"){ _gt.state = "idle"; _gt.tState = 0; } target.grabTarget = null; }
+  if (target.grabTarget){ var gtx = target.grabTarget; gtx.grabbedBy = null; if (!gtx.dead){ gtx.state = "idle"; gtx.tState = 0; } target.grabTarget = null; }
   spawnDust(target.x, target.z, 2);
   if (target.hp <= 0 || opts.knockdown){
     enemyCounter(target, kx, wasGrabbed, true);
@@ -662,16 +675,17 @@ function playerStep(p, dt){
       EB.punch = 0;
       p.atkKind = "knee"; p.tState = 0;
       var cm = (HEROES[p.charId] || HEROES.ahLong).comboMul;
-      hurt(gt, Math.max(1, Math.round(4 * (HEROES[p.charId] || HEROES.ahLong).dmgMul)), 0, { stun: 0.5 }); if (!gt.dead && gt.state !== "down"){ gt.grabbedBy = p; p.grabTarget = gt; gt.state = "grabbed"; gt.tState = 0; } else { p.grabTarget = null; p.state = "idle"; p.combo = 0; }
+      var landed = hurt(gt, Math.max(1, Math.round(4 * (HEROES[p.charId] || HEROES.ahLong).dmgMul)), 0, { stun: 0.5 });
       G.score += 20; G.hitstop = Math.max(G.hitstop, 0.05); SFX.kick();
-      p.combo++;
-      if (p.combo >= Math.max(2, Math.round(3 * cm))){
+      if (landed) p.combo++;
+      if (!gt.dead && gt.state === "hurt"){ gt.state = "grabbed"; gt.tState = 0; gt.grabbedBy = p; p.grabTarget = gt; }
+      if (landed && p.grabTarget === gt && p.combo >= Math.max(2, Math.round(3 * cm))){
         hurt(gt, 6, p.face * 260, { knockdown: true });
         gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; p.combo = 0;
         G.score += 50;
-      }
+      } else if (p.grabTarget !== gt && gt.state !== "grabbed"){ p.state = "idle"; }
     }
-    if (ED.kickP && !ED.punchP){
+    else if (ED.kickP){
       EB.kick = 0;
       hurt(gt, 6, p.face * 330, { knockdown: true });
       gt.grabbedBy = null; p.grabTarget = null; p.state = "idle"; p.combo = 0;
@@ -741,7 +755,7 @@ function clampBelt(f){
   if (f.z > BELT_BOT) f.z = BELT_BOT;
   var minX = G ? Math.max(12, G.cam + 4) : 12;
   if (f.x < minX) f.x = minX;
-  var maxX = (G && (G.phase === "fight")) ? G.gate : WORLD_LEN;
+  var maxX = (G && (G.phase === "fight")) ? G.gate : WORLD_LEN; // v12: stopped at the roadblock until the wave falls
   if (f.x > maxX) f.x = maxX;
 }
 function tryPickup(p){
@@ -791,8 +805,8 @@ function startPlayerAttack(p, kind){
   if (p.y > 0) p.state = "jumpatk";
   var hc = HEROES[p.charId] || HEROES.ahLong;
   if (kind === "punch"){
-    if (p.weapon && WEAPON_STATS[p.weapon.type]){
-      var ws = WEAPON_STATS[p.weapon.type];
+    if (p.weapon){
+      var ws = WEAPON_STATS[p.weapon.type] || WEAPON_STATS.bat;
       doAttackHit(p, ws.reach, 12, ws.dmg, p.face * 170, false);
       if (p.weapon.type === "whip") SFX.crack(); else SFX.swing();
       wearWeapon(p);
@@ -833,7 +847,8 @@ function doAttackHit(atk, reach, zTol, dmg, kx, knockdown){
     if (Math.abs(t.z - atk.z) > zTol + 4) continue;
     // grab: player unarmed punch, very close, enemy standing
     if (isPlayer && !atk.weapon && atk.atkKind === "punch" && dx < 13 && t.state !== "attack" && atk.y === 0){
-      if (t.grabbedBy && t.grabbedBy !== atk){ var prevH = t.grabbedBy; prevH.grabTarget = null; if (prevH.state === "grab"){ prevH.state = "idle"; prevH.tState = 0; } } t.grabbedBy = atk; atk.grabTarget = t; atk.state = "grab"; atk.tState = 0; atk.combo = 0;
+      if (t.grabbedBy && t.grabbedBy !== atk){ t.grabbedBy.grabTarget = null; t.grabbedBy.state = "idle"; t.grabbedBy.tState = 0; }
+      t.grabbedBy = atk; atk.grabTarget = t; atk.state = "grab"; atk.tState = 0; atk.combo = 0;
       t.state = "grabbed"; t.tState = 0; clampBelt(t);
       hitAny = true; break;
     }
@@ -895,10 +910,12 @@ function tokensUsed(except){
 function enemyStep(e, dt){
   var p = nearestPlayer(e) || G.player;
   e.tState += dt;
-  if (e.flash > 0) e.flash -= dt; if (e.dead && e.state !== "down"){ e.removeMe = true; return; }
+  if (e.dead && e.state !== "down"){ e.removeMe = true; return; }
+  if (e.flash > 0) e.flash -= dt;
   if (e.invuln > 0) e.invuln -= dt;
-  if (e.throwCd > 0) e.throwCd -= dt; if (e.stun > 0) e.stun -= dt;
+  if (e.throwCd > 0) e.throwCd -= dt;
   if (e.counterCd > 0) e.counterCd--;
+  if (e.stun > 0) e.stun -= dt;
 
   if (e.state === "down"){
     e.y += e.vy * dt; e.vy -= GRAV * dt;
@@ -1012,7 +1029,8 @@ function enemyStep(e, dt){
   for (var j=0;j<G.enemies.length;j++){
     var o = G.enemies[j];
     if (o !== e && !o.dead && Math.abs(o.x - e.x) < 10 && Math.abs(o.z - e.z) < 6) e.x += (e.x < o.x ? -8 : 8) * dt;
-  } clampBelt(e);
+  }
+  clampBelt(e);
 }
 
 // thrown weapons / loose weapons physics
@@ -1030,7 +1048,7 @@ function weaponStep(dt){
         hurt(hitP, 5, Math.sign(w.vx) * 160, {});
         G.weapons.splice(i,1); continue;
       }
-      if (w.x < G.cam - 40 || w.x > G.cam + W_MAX + 60){ G.weapons.splice(i,1); continue; } // W_MAX is a sim constant; the view W must never leak into the sim
+      if (w.x < G.cam - 40 || w.x > G.cam + W_MAX + 60){ G.weapons.splice(i,1); continue; }
     } else if (w.y > 0 || w.vy !== 0){
       w.y += w.vy * dt; w.vy -= GRAV * dt; w.x += (w.vx || 0) * dt; w.vx *= 0.9;
       if (w.y <= 0){ w.y = 0; w.vy = 0; w.vx = 0; }
@@ -1073,7 +1091,7 @@ function allPlayersDead(){
 function reviveAtSpot(q){
   q.dead = false; q.deathHandled = false; q.removeMe = false; q.out = false;
   q.hp = q.maxhp;
-  q.x = q.deathX; q.z = q.deathZ; clampBelt(q);
+  q.x = Math.max(12, Math.min(WORLD_LEN - 14, q.deathX)); q.z = q.deathZ; clampBelt(q);
   q.y = 0; q.vy = 0; q.vx = 0; q.vz = 0;
   q.state = "idle"; q.tState = 0; q.invuln = 2.0;
   q.weapon = null; q.grabTarget = null; q.grabbedBy = null;
@@ -1102,11 +1120,12 @@ function doContinue(){
   for (var i=0;i<G.players.length;i++){
     var q = G.players[i];
     q.lives = 3; q.dead = false; q.out = false; q.deathHandled = false; q.rebornT = 0; q.removeMe = false;
-    q.hp = q.maxhp; q.weapon = null; q.grabTarget = null; q.grabbedBy = null; var qp = getPin(q); qp.buf.punch = 0; qp.buf.kick = 0; qp.buf.jump = 0;
+    q.hp = q.maxhp; q.weapon = null; q.grabTarget = null; q.grabbedBy = null;
     q.x = WAVES[G.wave].gate - 340 - i * 24; q.z = 215 + i * 16; q.y = 0; q.vy = 0; q.vx = 0; q.vz = 0;
     q.state = "idle"; q.tState = 0; q.invuln = 1.0;
     addFloat(q.x, q.z, "再戰！", "#ffd94a");
   }
+  for (var bi2=0;bi2<G.players.length;bi2++){ var bp = getPin(G.players[bi2]); bp.buf.punch = 0; bp.buf.kick = 0; bp.buf.jump = 0; }
   G.enemies = []; G.bossRef = null;
   startWave(G.wave);
 }
@@ -1141,7 +1160,7 @@ function simStep(dt){
   if (G.phase === "lobby"){ G.tick++; return; }
   if (paused && !(NET && NET.active)) return;
   G.tick++; G.time += dt;
-  if (G.hitstop > 0 && G.phase !== "continue"){ G.hitstop -= dt; decayFx(dt);
+  if (G.hitstop > 0){ G.hitstop -= dt; decayFx(dt);
     // keep direction levels in sync so a held direction is not mistaken
     // for a fresh double-tap when hitstop ends (playerStep also mirrors
     // levels into each player's own prevLv every step)
@@ -1181,15 +1200,16 @@ function simStep(dt){
   // camera follows the lead (leftmost living) player, clamped to the gate.
   // Moves toward the target at a fixed per-step rate (frame-count based,
   // not exponential) so replays are bit-exact.
-  var want = p ? p.x - 110 : G.cam; for (var ri=0;ri<G.players.length;ri++){ var rp2 = G.players[ri]; if (rp2.dead && rp2.rebornT > 0) want = Math.min(want, rp2.deathX - 110); }
-  var maxCam = (G.phase === "fight") ? (G.gate - VW + 40) : (WORLD_LEN - VW);
+  var want = p ? p.x - 150 : G.cam;
+  var maxCam = (G.phase === "fight") ? (G.gate - W + 60) : (WORLD_LEN - W);
+  for (var rbi=0;rbi<G.players.length;rbi++) if (G.players[rbi].rebornT > 0) want = G.cam;
   if (want > maxCam) want = maxCam;
   if (want < 0) want = 0;
   if (want < G.cam) want = G.cam; // never scroll back
   var cd = want - G.cam;
   var cStep = 320 * dt;
   if (cd > cStep) G.cam += cStep; else if (cd < -cStep) G.cam -= cStep; else G.cam = want;
-  if (G.cam > WORLD_LEN - VW) G.cam = WORLD_LEN - VW;
+  if (G.cam > WORLD_LEN - W) G.cam = WORLD_LEN - W;
 
   // wave clear?
   if (G.phase === "fight" && G.enemies.length === 0){
@@ -1200,13 +1220,13 @@ function simStep(dt){
       nb += Math.max(0, 600 - Math.floor(G.time)) * 2;
       if (nb > 0) G.score += nb;
     } else {
-      if ((G.wave + 1) % 3 === 0){
+      if ((G.wave + 1) % 4 === 0){
         // chapter boss down: heal up, bonus, banner, then walk on
         for (var ci2=0;ci2<G.players.length;ci2++){ var cp = G.players[ci2]; if (!cp.dead) cp.hp = Math.min(cp.maxhp, cp.hp + 30); }
         for (var mi=0;mi<G.players.length;mi++){ var mp = G.players[mi]; if (mp.out){ mp.lives = 1; mp.out = false; mp.deathHandled = false; mp.dead = false; mp.removeMe = false; mp.hp = Math.floor(mp.maxhp / 2); mp.x = p ? Math.max(14, p.x - 30) : 80; mp.z = 215; mp.y = 0; mp.vy = 0; mp.vx = 0; mp.vz = 0; mp.state = "idle"; mp.tState = 0; mp.invuln = 1.5; mp.weapon = null; mp.grabTarget = null; mp.grabbedBy = null; addFloat(mp.x, mp.z, "復活！", "#8ad2ff"); } }
         G.score += 500;
-        UI.banner = "第 " + (Math.floor(G.wave / 3) + 1) + " 章制霸！";
-        UI.sub = CHAPTERS[Math.floor(G.wave / 3)].name + " —— 已肅清";
+        UI.banner = "第 " + (Math.floor(G.wave / 4) + 1) + " 章制霸！";
+        UI.sub = CHAPTERS[Math.floor(G.wave / 4)].name + " —— 已肅清";
         UI.until = G.tick + 200;
       }
       G.phase = "go"; G.goTimer = 0; SFX.go();
@@ -1222,6 +1242,7 @@ function simStep(dt){
         if (!G.players[gi].dead && G.players[gi].x > next.gate - 330){ startWave(G.wave + 1); break; }
       }
     }
+    if (next && G.goTimer > 8) startWave(G.wave + 1); // failsafe: never hard-stuck in 'go'
   }
   if (G.phase === "clear") G.clearTimer += dt;
   livesCheck();
@@ -1690,7 +1711,7 @@ function drawFighterSpr(f){
   if (!got) return false;
   var fr = got.fr, e = got.e;
   var sx = Math.round(f.x - G.cam), sy = Math.round(f.z - f.y);
-  var dh = fr.h * (f.h / 160); // display height: atlas idle = 160 units
+  var dh = fr.h * (f.h / 160) * 1.5; // v14: characters 1.5x taller (draw scale only)
   var k = dh / fr.h;
   var dw = fr.w * k;
   // ground shadow (same shape language as the vector version)
@@ -1710,8 +1731,8 @@ function drawFighterSpr(f){
     ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1.5;
     for (var li = -1; li <= 1; li++){
       ctx.beginPath();
-      ctx.moveTo(sx - f.face * 12, sy - 22 + li * 6);
-      ctx.lineTo(sx - f.face * 30, sy - 22 + li * 6);
+      ctx.moveTo(sx - f.face * 12, sy - 33 + li * 9);
+      ctx.lineTo(sx - f.face * 30, sy - 33 + li * 9);
       ctx.stroke();
     }
   }
@@ -1723,7 +1744,7 @@ function drawFighterSpr(f){
       }
     }
   }
-  drawNameHp(f, sx, Math.round(f.z - f.y) - f.h - 6);
+  drawNameHp(f, sx, sy - Math.round(dh) - 6);
   return true;
 }
 function drawFighter(f){
@@ -2052,8 +2073,8 @@ function drawAIBackdrop(){
 var DECOR = [
   { id:"neon_sign", x:320,  par:0.6, y:94,  w:26, h:42, hang:true },
   { id:"lantern",   x:1010, par:0.6, y:76,  w:18, h:31, hang:true },
-  { id:"cone",      x:1640, par:1.0, y:170, w:15, h:20 },
-  { id:"metal_bin", x:2140, par:1.0, y:174, w:20, h:27 }
+  { id:"cone",      x:1640, par:1.0, y:198, w:15, h:20 },
+  { id:"metal_bin", x:2140, par:1.0, y:202, w:20, h:27 }
 ];
 function drawDecor(){
   if (!AssetStore.on()) return;
@@ -2094,12 +2115,12 @@ for (var bdi = 0; bdi < BD_DATA.length; bdi++){ var bdImg = new Image(); bdImg.s
 function drawChapterBackdrop(){
   if (!AssetStore.on()) return false;
   var vwd = W / ZOOM;
-  var ch = Math.floor((G.cam + vwd / 2) / 1980);
+  var ch = Math.floor((G.cam + vwd / 2) / 2640);
   if (ch < 0) ch = 0; if (ch > 9) ch = 9;
   var im = BD_IMGS[ch];
   if (!im || !im.complete || !im.width) return false;
-  var start = ch * 1980;
-  var span = (ch < 9 ? 1980 : WORLD_LEN - start);
+  var start = ch * 2640;
+  var span = (ch < 9 ? 2640 : WORLD_LEN - start);
   var p = (G.cam - start) / Math.max(1, span - vwd);
   if (p < 0) p = 0; if (p > 1) p = 1;
   var IH = im.height;
@@ -2118,20 +2139,32 @@ function drawChapterBackdrop(){
 function drawGateBarrier(){
   var bx = G.gate - G.cam;
   var vwd = W / ZOOM;
-  if (bx < -10 || bx > vwd + 10) return;
-  var a = 0.62 + 0.25 * Math.sin(G.time * 5);
+  if (bx < -60 || bx > vwd + 10) return;
   ctx.save();
-  ctx.strokeStyle = "rgba(255,176,32," + a.toFixed(3) + ")";
-  ctx.lineWidth = 4;
-  ctx.setLineDash([10, 7]);
-  ctx.beginPath(); ctx.moveTo(bx, BELT_TOP - 8); ctx.lineTo(bx, BELT_BOT + 12); ctx.stroke();
-  ctx.setLineDash([]);
+  // the street beyond the roadblock is not part of the stage yet
+  ctx.fillStyle = "rgba(5,6,14,0.42)";
+  ctx.fillRect(bx + 16, VTOP, vwd - bx + 8, H - VTOP);
+  // striped construction barricades across the belt at the gate
+  var brows = [186, 218, 250];
+  for (var r = 0; r < brows.length; r++){
+    var zy = brows[r];
+    ctx.fillStyle = "#3a3f4a";
+    ctx.fillRect(bx + 3, zy - 2, 4, 12);
+    ctx.fillRect(bx + 37, zy - 2, 4, 12);
+    ctx.fillStyle = "#e8641c";
+    ctx.fillRect(bx, zy - 14, 44, 13);
+    ctx.fillStyle = "#f5f2ea";
+    for (var s2 = 0; s2 < 3; s2++) ctx.fillRect(bx + 6 + s2 * 13, zy - 14, 6, 13);
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.fillRect(bx, zy - 2.5, 44, 2.5);
+  }
+  // cones in front of the barricades
   for (var i = 0; i < 2; i++){
-    var cy = i === 0 ? BELT_TOP - 2 : BELT_BOT + 4;
+    var cy = i === 0 ? 202 : 234;
     ctx.fillStyle = "rgba(255,140,26,0.95)";
-    ctx.beginPath(); ctx.moveTo(bx - 6, cy + 8); ctx.lineTo(bx, cy - 4); ctx.lineTo(bx + 6, cy + 8); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(bx - 12, cy + 8); ctx.lineTo(bx - 6, cy - 5); ctx.lineTo(bx, cy + 8); ctx.closePath(); ctx.fill();
     ctx.fillStyle = "rgba(255,255,255,0.9)";
-    ctx.fillRect(bx - 3.4, cy + 2.4, 6.8, 2.2);
+    ctx.fillRect(bx - 9.4, cy + 2.2, 6.8, 2.2);
   }
   ctx.restore();
 }
@@ -2258,8 +2291,8 @@ function drawHUD(){
   }
   ROUND(ctx, W - 104, 6, 96, 30, "rgba(6,8,18,0.62)", 3);
   TXT("SCORE " + G.score, W - 12, 8, 11, "#fff", "right", true);
-  TXT("第 " + (Math.floor(G.wave / 3) + 1) + " 章 · 第 " + (G.wave % 3 + 1) + " 段", W - 12, 22, 10, "#aab", "right");
-  if (G.bossRef && !G.bossRef.removeMe && (G.wave % 3 === 2) && G.phase !== "clear"){
+  TXT("第 " + (Math.floor(G.wave / 4) + 1) + " 章 · 第 " + (G.wave % 4 + 1) + " 段", W - 12, 22, 10, "#aab", "right");
+  if (G.bossRef && !G.bossRef.removeMe && (G.wave % 4 === 3) && G.phase !== "clear"){
     var b = G.bossRef;
     ROUND(ctx, W/2 - 91, H - 19, 182, 10, "rgba(6,8,18,0.72)", 3);
     ROUND(ctx, W/2 - 88, H - 16.5, 176 * Math.max(0, b.hp / b.maxhp), 5, "#b03ae0", 2);
@@ -2441,7 +2474,18 @@ function render(){
   ctx.scale(ZOOM, ZOOM); ctx.translate(0, -VTOP); // v9: 1.5x world zoom (render-only)
   if (G.shake > 0) ctx.translate(Math.round((G.rng ? 0 : 0)), 0); // shake applied below via render-only jitter
   drawBG();
-  if (G.phase === "fight") drawGateBarrier();
+  if (G.phase === "go"){
+    var vwdG = W / ZOOM;
+    for (var cg = 0; cg < 3; cg++){
+      var cgx = G.cam + vwdG * (0.52 + cg * 0.16) + Math.sin(G.time * 3 + cg) * 3;
+      ctx.globalAlpha = 0.30 + 0.28 * (0.5 + 0.5 * Math.sin(G.time * 5 + cg * 1.2));
+      ctx.fillStyle = "#ffd94a";
+      ctx.beginPath();
+      ctx.moveTo(cgx, 198); ctx.lineTo(cgx + 13, 215); ctx.lineTo(cgx, 232); ctx.lineTo(cgx + 5, 215);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   // draw order: weapons on ground, then props/food/fighters sorted by z
   var i;
   for (i=0;i<G.weapons.length;i++) drawWeaponGround(G.weapons[i]);
@@ -2582,6 +2626,17 @@ function render(){
   if (paused && G.phase !== "title" && !(NET && NET.active)){
     R(0, 0, W, H, "rgba(0,0,0,0.45)");
     TXT("暫停 PAUSED", W/2, 118, 20, "#fff", "center", true);
+  }
+  if (!paused && G.phase !== "title" && (G.phase === "fight" || G.phase === "go") && !(NET && NET.active)
+      && typeof document !== "undefined" && document.hasFocus && !document.hasFocus()){
+    R(0, 0, W, H, "rgba(0,0,0,0.35)");
+    TXT("視窗失去焦點 — 撳一下遊戲畫面繼續", W/2, 112, 16, "#ffd94a", "center", true);
+    TXT("WINDOW NOT FOCUSED — CLICK THE GAME TO CONTINUE", W/2, 136, 10, "#fff", "center");
+  }
+  if (!paused && G.phase !== "title" && (G.phase === "fight" || G.phase === "go") && !(NET && NET.active) && IME_ON){
+    R(0, 0, W, H, "rgba(0,0,0,0.35)");
+    TXT("輸入法開啟中 — 按鍵俾輸入法攞走咗", W/2, 112, 16, "#ffd94a", "center", true);
+    TXT("請按 Shift 切換到英文輸入,再撳一下遊戲畫面", W/2, 136, 10, "#fff", "center");
   }
   if (NET && NET.active && NET.broken && !netMenu.open){
     R(0, 0, W, H, "rgba(16,5,5,0.78)");
@@ -3835,6 +3890,16 @@ document.addEventListener("visibilitychange", function(){
     NET.retryAt = 0; netToast("嘗試重新連線…", 1800);
   }
 });
+window.addEventListener("blur", function(){
+  for (var bk in input) input[bk] = false;
+  var bp2 = p2pin(); for (var bk2 in bp2.lv) bp2.lv[bk2] = false;
+});
+// IME guard (v14): while a Chinese/Japanese IME composition is
+// open it owns the letter keys, so WASD silently stops reaching
+// the game. Track it so render() can warn on screen.
+var IME_ON = false;
+window.addEventListener("compositionstart", function(){ IME_ON = true; });
+window.addEventListener("compositionend", function(){ IME_ON = false; });
 window.addEventListener("online", function(){ if (NET && NET.active && NET.dropped) NET.retryAt = 0; });
 window.addEventListener("offline", function(){
   if (NET && NET.active && !NET.dropped) netHandleDrop(NET, "網絡離線");
@@ -4041,8 +4106,8 @@ window.__game = {
   forceWave: function(n){ G.enemies = []; G.bossRef = null; startWave(n); },
   hurtPlayer: function(n, idx){ var q = G.players[idx || 0]; q.hp -= n; if (q.hp <= 0 && !q.dead){ q.dead = true; q.state = "down"; q.tState = 0; q.vy = 200; } },
   killPlayer: function(idx){ var q = G.players[idx || 0]; q.hp = 0; q.dead = true; q.state = "down"; q.tState = 0.9; q.removeMe = false; },
-  spawnBoss: function(){ G.enemies = []; G.bossRef = null; startWave(2); },
-  gotoChapter: function(c){ G.enemies = []; G.bossRef = null; var w = Math.max(0, Math.min(9, c|0)) * 3;
+  spawnBoss: function(){ G.enemies = []; G.bossRef = null; startWave(3); },
+  gotoChapter: function(c){ G.enemies = []; G.bossRef = null; var w = Math.max(0, Math.min(9, c|0)) * 4;
     for (var pi=0;pi<G.players.length;pi++){ if (!G.players[pi].dead){ G.players[pi].x = WAVES[w].gate - 340; G.players[pi].z = 215; } }
     startWave(w); },
   chapters: function(){ return { waves: WAVES.length, chapters: CHAPTERS.length,
