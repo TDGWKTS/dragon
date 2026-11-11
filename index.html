@@ -99,6 +99,7 @@ RNG.prototype.chance = function(p){ return this.next() < p; };
 // ---------- constants ----------
 var W = 480, H = 270;
 var ZOOM = 1, VW = 480, VTOP = 0;   // v13: pre-character-change view (Matt v5): full-width view, no zoom
+var SIM_W = 0;   // v16: negotiated sim view width for online play (0 = none; solo always uses local W)
 var BELT_TOP = 150, BELT_BOT = 252;            // walkable depth band (world y = ground line)
 var WORLD_LEN = 26540;                          // total stage length (px)
 var GRAV = 1500, JUMP_V = 560;
@@ -1202,7 +1203,8 @@ function simStep(dt){
   // Moves toward the target at a fixed per-step rate (frame-count based,
   // not exponential) so replays are bit-exact.
   var want = p ? p.x - 150 : G.cam;
-  var maxCam = (G.phase === "fight") ? (G.gate - W + 60) : (WORLD_LEN - W);
+  var SW = (NET && NET.active) ? (SIM_W || 480) : W; // v16: online sims must agree on the view width
+  var maxCam = (G.phase === "fight") ? (G.gate - SW + 60) : (WORLD_LEN - SW);
   if (G.phase === "go"){ // v15: free-roam camera — follow the furthest hero
     var rp = null;
     for (var rpi=0;rpi<G.players.length;rpi++){ var rq = G.players[rpi]; if (!rq.dead && (!rp || rq.x > rp.x)) rp = rq; }
@@ -1215,7 +1217,7 @@ function simStep(dt){
   var cd = want - G.cam;
   var cStep = 320 * dt;
   if (cd > cStep) G.cam += cStep; else if (cd < -cStep) G.cam -= cStep; else G.cam = want;
-  if (G.cam > WORLD_LEN - W) G.cam = WORLD_LEN - W;
+  if (G.cam > WORLD_LEN - SW) G.cam = WORLD_LEN - SW;
 
   // wave clear?
   if (G.phase === "fight" && G.enemies.length === 0){
@@ -3214,7 +3216,7 @@ function netRelayConnect(sess){
     sess.live = true;
     if (sess.role === "host"){ if (!sess.active) LOBBY.status = "等朋友入房…"; }
     else {
-      sess.transport.send({ type: "hello", code: sess.code, sid: sess.sid });
+      sess.transport.send({ type: "hello", code: sess.code, sid: sess.sid, w: W });
       LOBBY.status = "已連通（中繼），等主機開始…";
       netArmTimer(sess, 10000, function(){
         netFail(sess, "typing", "主機冇回應 — 等主機嗰邊重新開房再試");
@@ -3404,7 +3406,7 @@ function netGuestJoin(){
   LOBBY.state = "joining"; LOBBY.status = "① 連緊信令服務…";
   if (QS_NETTEST){
     netAttachBC(sess);
-    sess.transport.send({ type: "hello", code: code, sid: sess.sid });
+    sess.transport.send({ type: "hello", code: code, sid: sess.sid, w: W });
     LOBBY.status = "等主機回應…（本機測試模式）";
     return;
   }
@@ -3436,7 +3438,7 @@ function netGuestJoin(){
       if (NET !== sess) return;
       netClearTimers(sess);
       sess.live = true;
-      sess.transport.send({ type: "hello", code: code, sid: sess.sid });
+      sess.transport.send({ type: "hello", code: code, sid: sess.sid, w: W });
       LOBBY.status = "③ 已連通，等主機開始…";
       netArmTimer(sess, 10000, function(){
         netFail(sess, "typing", "主機冇回應 — 等主機嗰邊重新開房再試");
@@ -3517,6 +3519,7 @@ function netHandleMessage(msg){
   }
   if (msg.type === "hello"){
     if (NET.role !== "host" || NET.active || LOBBY.state !== "hostWait") return;
+    if (typeof msg.w === "number" && msg.w > 0) NET.peerW = msg.w;
     if (msg.code && msg.code !== NET.code){
       NET.transport.send({ type: "reject" });
       return;
@@ -3531,7 +3534,7 @@ function netHandleMessage(msg){
     }
   }
   else if (msg.type === "start"){
-    if (NET.role === "guest" && !NET.active && typeof msg.seed === "number") netStartGame(msg.seed);
+    if (NET.role === "guest" && !NET.active && typeof msg.seed === "number") netStartGame(msg.seed, (typeof msg.w === "number") ? msg.w : 0);
   }
   else if (msg.type === "input"){
     if (NET.active && msg.rec && typeof msg.rec.t === "number"){
@@ -3551,10 +3554,11 @@ function netHostBegin(){
   var seed = ((Date.now() % 1000000007) ^ ((performance.now() * 1000) >>> 0) ^ 0x5eed1234) >>> 0;
   if (!seed) seed = 20261110;
   NET.seed = seed;
-  NET.transport.send({ type: "start", seed: seed });
-  netStartGame(seed);
+  var simW = Math.min(W, (typeof NET.peerW === "number" && NET.peerW > 0) ? NET.peerW : W);
+  NET.transport.send({ type: "start", seed: seed, w: simW });
+  netStartGame(seed, simW);
 }
-function netStartGame(seed){
+function netStartGame(seed, simW){
   netClearTimers(NET);
   // the relay adds a network hop, so its inputs get a longer runway
   // (5 ticks instead of 3) to keep stalls rare; both sides derive this
@@ -3564,6 +3568,7 @@ function netStartGame(seed){
   NET.live = true; NET.dropped = false; NET.broken = false;
   NET.lastPing = netNow(); NET.lastPong = netNow();
   NET.seed = seed;
+  SIM_W = simW || 0;
   NET.recs = [{}, {}];
   for (var t=0;t<INPUT_DELAY;t++){ NET.recs[0][t] = emptyRec(t); NET.recs[1][t] = emptyRec(t); }
   NET.nextTick = INPUT_DELAY;
@@ -3598,7 +3603,7 @@ function netExitToSelect(){ netDisconnect(""); }
 // edgeBuf exactly once, onto the first record produced this frame.
 function netSample(){
   if (!NET || !NET.active || !NET.transport) return;
-  if (G.phase !== "fight" && G.phase !== "go") return;
+  if (G.phase !== "fight" && G.phase !== "go" && G.phase !== "continue") return; // v16: continue needs input records too
   var target = G.tick + INPUT_DELAY;
   if (NET.nextTick > target) return;
   var capP = edgeBuf.punch > 0, capK = edgeBuf.kick > 0, capJ = edgeBuf.jump > 0;
