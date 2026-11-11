@@ -753,7 +753,8 @@ function tapDir(d, p){
 function clampBelt(f){
   if (f.z < BELT_TOP) f.z = BELT_TOP;
   if (f.z > BELT_BOT) f.z = BELT_BOT;
-  var minX = G ? Math.max(12, G.cam + 4) : 12;
+  var freeRoam = G && G.phase === "go" && f.idx !== undefined; // v15: heroes roam the whole map between waves
+  var minX = freeRoam ? 12 : (G ? Math.max(12, G.cam + 4) : 12);
   if (f.x < minX) f.x = minX;
   var maxX = (G && (G.phase === "fight")) ? G.gate : WORLD_LEN; // v12: stopped at the roadblock until the wave falls
   if (f.x > maxX) f.x = maxX;
@@ -1202,10 +1203,15 @@ function simStep(dt){
   // not exponential) so replays are bit-exact.
   var want = p ? p.x - 150 : G.cam;
   var maxCam = (G.phase === "fight") ? (G.gate - W + 60) : (WORLD_LEN - W);
+  if (G.phase === "go"){ // v15: free-roam camera — follow the furthest hero
+    var rp = null;
+    for (var rpi=0;rpi<G.players.length;rpi++){ var rq = G.players[rpi]; if (!rq.dead && (!rp || rq.x > rp.x)) rp = rq; }
+    if (rp) want = rp.x - 150;
+  }
   for (var rbi=0;rbi<G.players.length;rbi++) if (G.players[rbi].rebornT > 0) want = G.cam;
   if (want > maxCam) want = maxCam;
   if (want < 0) want = 0;
-  if (want < G.cam) want = G.cam; // never scroll back
+  if (want < G.cam && G.phase !== "go") want = G.cam; // never scroll back (free-roam 'go' excepted)
   var cd = want - G.cam;
   var cStep = 320 * dt;
   if (cd > cStep) G.cam += cStep; else if (cd < -cStep) G.cam -= cStep; else G.cam = want;
