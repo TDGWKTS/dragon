@@ -2110,10 +2110,30 @@ function drawChapterBackdrop(){
   ctx.drawImage(im, sx, 0, sw, IH, 0, VTOP, vwd, ph);
   var rest = H - VTOP - ph;
   if (rest > 0.5){
-    var stripH = Math.max(2, Math.round(IH * 0.03));
+    var stripH = Math.max(2, Math.min(Math.round(IH * 0.30), Math.round(rest * IH / ph)));
     ctx.drawImage(im, sx, IH - stripH, sw, stripH, 0, VTOP + ph, vwd, rest);
   }
   return true;
+}
+function drawGateBarrier(){
+  var bx = G.gate - G.cam;
+  var vwd = W / ZOOM;
+  if (bx < -10 || bx > vwd + 10) return;
+  var a = 0.62 + 0.25 * Math.sin(G.time * 5);
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,176,32," + a.toFixed(3) + ")";
+  ctx.lineWidth = 4;
+  ctx.setLineDash([10, 7]);
+  ctx.beginPath(); ctx.moveTo(bx, BELT_TOP - 8); ctx.lineTo(bx, BELT_BOT + 12); ctx.stroke();
+  ctx.setLineDash([]);
+  for (var i = 0; i < 2; i++){
+    var cy = i === 0 ? BELT_TOP - 2 : BELT_BOT + 4;
+    ctx.fillStyle = "rgba(255,140,26,0.95)";
+    ctx.beginPath(); ctx.moveTo(bx - 6, cy + 8); ctx.lineTo(bx, cy - 4); ctx.lineTo(bx + 6, cy + 8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(bx - 3.4, cy + 2.4, 6.8, 2.2);
+  }
+  ctx.restore();
 }
 function drawBG(){
   if (drawChapterBackdrop()){
@@ -2421,6 +2441,7 @@ function render(){
   ctx.scale(ZOOM, ZOOM); ctx.translate(0, -VTOP); // v9: 1.5x world zoom (render-only)
   if (G.shake > 0) ctx.translate(Math.round((G.rng ? 0 : 0)), 0); // shake applied below via render-only jitter
   drawBG();
+  if (G.phase === "fight") drawGateBarrier();
   // draw order: weapons on ground, then props/food/fighters sorted by z
   var i;
   for (i=0;i<G.weapons.length;i++) drawWeaponGround(G.weapons[i]);
